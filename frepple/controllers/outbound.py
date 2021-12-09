@@ -545,6 +545,7 @@ class exporter(object):
         supplierinfo.date_end -> itemsupplier.effective_end
         product.product.product_tmpl_id.delay -> itemsupplier.leadtime
         supplierinfo.sequence -> itemsupplier.priority
+        product.product.product_tmpl_id.xx_forecastable -> booleanproperty.forecastable
         """
         # Read the product templates
         self.product_product = {}
@@ -604,7 +605,7 @@ class exporter(object):
             "price",
             "batching_window",
             "sequence",
-            "is_subcontractor",
+            "is_subcontractor"
         ]
 
         if recs:
@@ -617,6 +618,7 @@ class exporter(object):
                 "product_tmpl_id",
                 "volume",
                 "weight",
+                "forecastable"
             ]
             for i in recs.read(fields):
                 if i["product_tmpl_id"][0] not in self.product_templates:
@@ -653,6 +655,10 @@ class exporter(object):
                     if i["product_tmpl_id"][0] in mto_template_products
                     else "",
                 )
+
+                forcastable = 1 if i["forecastable"] else 0
+                yield '<booleanproperty name="forecastable" value="%s"/>\n'% forcastable
+
                 # Export suppliers for the item, if the item is allowed to be purchased
                 if tmpl["purchase_ok"]:
                     exists = False
@@ -780,7 +786,7 @@ class exporter(object):
 
         # Models used in the bom-loop below
         bom_lines_model = self.env["mrp.bom.line"]
-        bom_lines_fields = ["product_qty", "product_uom_id", "product_id"]
+        bom_lines_fields = ["product_qty", "product_uom_id", "product_id","xx_explode"]
         try:
             subproduct_model = self.env["mrp.subproduct"]
             subproduct_fields = [
@@ -891,23 +897,29 @@ class exporter(object):
                     for j in bom_lines_model.browse(i["bom_line_ids"]).read(
                         bom_lines_fields
                     ):
+                        if j['xx_explode']:
+                            continue
+
                         product = self.product_product.get(j["product_id"][0], None)
                         if not product:
                             continue
+
                         if j["product_id"][0] in fl:
-                            fl[j["product_id"][0]].append(j)
+                            fl[j["product_id"][0]]['product_qty'] += j['product_qty']
                         else:
-                            fl[j["product_id"][0]] = [j]
+                            fl[j["product_id"][0]] = j
+
                     for j in fl:
                         product = self.product_product[j]
-                        qty = sum(
-                            self.convert_qty_uom(
-                                k["product_qty"],
-                                k["product_uom_id"][0],
-                                self.product_product[k["product_id"][0]]["template"],
-                            )
-                            for k in fl[j]
+                        qty = self.convert_qty_uom(
+                            fl[j]["product_qty"],
+                            fl[j]["product_uom_id"][0],
+                            self.product_product[fl[j]["product_id"][0]]["template"],
                         )
+
+                        if qty <= 0:
+                            continue
+
                         yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                             qty,
                             quoteattr(product["name"]),
@@ -1013,28 +1025,29 @@ class exporter(object):
                             for j in bom_lines_model.browse(i["bom_line_ids"]).read(
                                 bom_lines_fields
                             ):
+                                if j['xx_explode']:
+                                    continue
+
                                 product = self.product_product.get(
                                     j["product_id"][0], None
                                 )
                                 if not product:
                                     continue
                                 if j["product_id"][0] in fl:
-                                    fl[j["product_id"][0]].append(j)
+                                    fl[j["product_id"][0]]['product_qty'] += j['product_qty']
                                 else:
-                                    fl[j["product_id"][0]] = [j]
+                                    fl[j["product_id"][0]] = j
                             yield "<flows>\n"
                             for j in fl:
                                 product = self.product_product[j]
-                                qty = sum(
-                                    self.convert_qty_uom(
-                                        k["product_qty"],
-                                        k["product_uom_id"][0],
-                                        self.product_product[k["product_id"][0]][
-                                            "template"
-                                        ],
+                                qty = self.convert_qty_uom(
+                                        fl[j]["product_qty"],
+                                        fl[j]["product_uom_id"][0],
+                                        self.product_product[fl[j]["product_id"][0]]["template"],
                                     )
-                                    for k in fl[j]
-                                )
+
+                                if qty <= 0:
+                                    continue
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                                     qty,
                                     quoteattr(product["name"]),
