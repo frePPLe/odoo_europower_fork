@@ -545,7 +545,7 @@ class exporter(object):
         supplierinfo.date_end -> itemsupplier.effective_end
         product.product.product_tmpl_id.delay -> itemsupplier.leadtime
         supplierinfo.sequence -> itemsupplier.priority
-        product.product.product_tmpl_id.xx_forecastable -> booleanproperty.forecastable
+        product.product.product_tmpl_id.forecastable -> booleanproperty.forecastable
         """
         # Read the product templates
         self.product_product = {}
