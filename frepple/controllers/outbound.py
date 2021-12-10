@@ -799,7 +799,7 @@ class exporter(object):
             subproduct_model = None
 
         # Loop over all bom records
-        bom_recs = self.env["mrp.bom"].search([],limit=100)
+        bom_recs = self.env["mrp.bom"].search([('id','=',8127)],limit=100)
         bom_fields = [
             "product_qty",
             "product_uom_id",
@@ -1024,7 +1024,6 @@ class exporter(object):
                             # have the same effectivity.
                             fl = {}
 
-                            logger.info()
                             for j in bom_lines_model.browse(i["bom_line_ids"]).read(
                                 bom_lines_fields
                             ):
