@@ -799,7 +799,7 @@ class exporter(object):
             subproduct_model = None
 
         # Loop over all bom records
-        bom_recs = self.env["mrp.bom"].search([],limit=10)
+        bom_recs = self.env["mrp.bom"].search([])
         bom_fields = [
             "product_qty",
             "product_uom_id",
