@@ -786,7 +786,7 @@ class exporter(object):
 
         # Models used in the bom-loop below
         bom_lines_model = self.env["mrp.bom.line"]
-        bom_lines_fields = ["product_qty", "product_uom_id", "product_id","xx_explode"]
+        bom_lines_fields = ["product_qty", "product_uom_id", "product_id", "xx_explode"]
         try:
             subproduct_model = self.env["mrp.subproduct"]
             subproduct_fields = [
@@ -799,7 +799,7 @@ class exporter(object):
             subproduct_model = None
 
         # Loop over all bom records
-        bom_recs = self.env["mrp.bom"].search([])
+        bom_recs = self.env["mrp.bom"].search([],limit=100)
         bom_fields = [
             "product_qty",
             "product_uom_id",
@@ -810,6 +810,7 @@ class exporter(object):
         for i in bom_recs.read(bom_fields):
             # Determine the location
             location = self.mfg_location
+            logger.info(i)
 
             # Determine operation name and item
             product_buf = self.product_template_product.get(
@@ -1022,6 +1023,8 @@ class exporter(object):
                             # we sum up all quantities in a single flow. We assume all of them
                             # have the same effectivity.
                             fl = {}
+
+                            logger.info()
                             for j in bom_lines_model.browse(i["bom_line_ids"]).read(
                                 bom_lines_fields
                             ):
