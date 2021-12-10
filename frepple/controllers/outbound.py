@@ -101,9 +101,11 @@ class exporter(object):
                 yield i
         for i in self.export_items():
             yield i
+        logger.info("---=== [START EXPORT BOMS] ===---")
         if self.mode == 1:
             for i in self.export_boms():
                 yield i
+        logger.info("---=== [END EXPORT BOMS] ===---")
         for i in self.export_salesorders():
             yield i
         if self.mode == 1:
