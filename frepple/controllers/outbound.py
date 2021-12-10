@@ -810,7 +810,7 @@ class exporter(object):
         for i in bom_recs.read(bom_fields):
             # Determine the location
             location = self.mfg_location
-            logger.info(i)
+            logger.info('bom ID: %s'%i['id'])
 
             # Determine operation name and item
             product_buf = self.product_template_product.get(
