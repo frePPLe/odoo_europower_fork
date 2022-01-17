@@ -37,7 +37,7 @@ class importer(object):
         #  - Mode 2:
         #    Incremental export of some proposed transactions from frePPLe.
         #    In this mode mode we are not erasing any previous proposals.
-        self.mode = mode
+        self.mode = int(mode)
 
     def run(self):
         msg = []
