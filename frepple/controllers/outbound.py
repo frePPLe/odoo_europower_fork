@@ -1301,11 +1301,22 @@ class exporter(object):
                     .astimezone(timezone(self.timezone))
                     .strftime(self.timeformat)
                 )
-                end = (
-                    i["date_planned"]
-                    .astimezone(timezone(self.timezone))
-                    .strftime(self.timeformat)
-                )
+                end = i["date_planned"].astimezone(timezone(self.timezone))
+                # Epower customization
+                weekday = end.weekday()
+                if weekday == 3:
+                    # PO received on thursday -> material available next monday
+                    end += timedelta(days=4)
+                elif weekday == 4:
+                    # PO received on friday -> material available next tuesday
+                    end += timedelta(days=4)
+                elif weekday == 5:
+                    # PO received on saturday -> material available next tuesday
+                    end += timedelta(days=3)
+                elif weekday == 6:
+                    # PO received on sunday -> material available next tuesday
+                    end += timedelta(days=2)
+                end = end.strftime(self.timeformat)
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
                     i["product_uom"][0],
