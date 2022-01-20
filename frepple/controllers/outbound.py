@@ -607,7 +607,7 @@ class exporter(object):
             "price",
             "batching_window",
             "sequence",
-            "is_subcontractor"
+            "is_subcontractor",
         ]
 
         if recs:
@@ -620,7 +620,7 @@ class exporter(object):
                 "product_tmpl_id",
                 "volume",
                 "weight",
-                "forecastable"
+                "forecastable",
             ]
             for i in recs.read(fields):
                 if i["product_tmpl_id"][0] not in self.product_templates:
@@ -659,7 +659,7 @@ class exporter(object):
                 )
 
                 forcastable = 1 if i["forecastable"] else 0
-                yield '<booleanproperty name="forecastable" value="%s"/>\n'% forcastable
+                yield '<booleanproperty name="forecastable" value="%s"/>\n' % forcastable
 
                 # Export suppliers for the item, if the item is allowed to be purchased
                 if tmpl["purchase_ok"]:
@@ -739,7 +739,7 @@ class exporter(object):
         # Read all workcenters of all routings
         mrp_routing_workcenters = {}
         m = self.env["mrp.routing.workcenter"]
-        recs = m.search([], order="bom_id, sequence asc")
+        recs = m.search([], order="bom_id, sequence, id asc")
         fields = [
             "name",
             "bom_id",
@@ -772,6 +772,7 @@ class exporter(object):
                             i["name"],
                             i["skill"][1] if i["skill"] else None,
                             i["search_mode"],
+                            i["id"],
                         ]
                     )
             else:
@@ -783,12 +784,19 @@ class exporter(object):
                         i["name"],
                         i["skill"][1] if i["skill"] else None,
                         i["search_mode"],
+                        i["id"],
                     ]
                 ]
 
         # Models used in the bom-loop below
         bom_lines_model = self.env["mrp.bom.line"]
-        bom_lines_fields = ["product_qty", "product_uom_id", "product_id", "xx_explode"]
+        bom_lines_fields = [
+            "product_qty",
+            "product_uom_id",
+            "product_id",
+            "operation_id",
+            "xx_explode",
+        ]
         try:
             subproduct_model = self.env["mrp.subproduct"]
             subproduct_fields = [
@@ -812,7 +820,7 @@ class exporter(object):
         for i in bom_recs.read(bom_fields):
             # Determine the location
             location = self.mfg_location
-            logger.info('bom ID: %s'%i['id'])
+            logger.info("bom ID: %s" % i["id"])
 
             # Determine operation name and item
             product_buf = self.product_template_product.get(
@@ -900,33 +908,31 @@ class exporter(object):
                     for j in bom_lines_model.browse(i["bom_line_ids"]).read(
                         bom_lines_fields
                     ):
-                        if j['xx_explode']:
+                        if j["xx_explode"]:
                             continue
 
                         product = self.product_product.get(j["product_id"][0], None)
                         if not product:
                             continue
-
                         if j["product_id"][0] in fl:
-                            fl[j["product_id"][0]]['product_qty'] += j['product_qty']
+                            fl[j["product_id"][0]].append(j)
                         else:
-                            fl[j["product_id"][0]] = j
-
+                            fl[j["product_id"][0]] = [j]
                     for j in fl:
                         product = self.product_product[j]
-                        qty = self.convert_qty_uom(
-                            fl[j]["product_qty"],
-                            fl[j]["product_uom_id"][0],
-                            self.product_product[fl[j]["product_id"][0]]["template"],
+                        qty = sum(
+                            self.convert_qty_uom(
+                                k["product_qty"],
+                                k["product_uom_id"][0],
+                                self.product_product[k["product_id"][0]]["template"],
+                            )
+                            for k in fl[j]
                         )
-
-                        if qty <= 0:
-                            continue
-
-                        yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                            qty,
-                            quoteattr(product["name"]),
-                        )
+                        if qty > 0:
+                            yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
+                                qty,
+                                quoteattr(product["name"]),
+                            )
 
                     # Build byproduct flows
                     if i.get("sub_products", None) and subproduct_model:
@@ -977,8 +983,28 @@ class exporter(object):
                     )
 
                     yield "<suboperations>"
+
+                    fl = {}
+                    for j in bom_lines_model.browse(i["bom_line_ids"]).read(
+                        bom_lines_fields
+                    ):
+                        if j["xx_explode"]:
+                            continue
+                        product = self.product_product.get(j["product_id"][0], None)
+                        if not product:
+                            continue
+                        qty = self.convert_qty_uom(
+                            j["product_qty"],
+                            j["product_uom_id"][0],
+                            self.product_product[j["product_id"][0]]["template"],
+                        )
+                        if j["product_id"][0] in fl:
+                            fl[j["product_id"][0]]["qty"] += qty
+                        else:
+                            j["qty"] = qty
+                            fl[j["product_id"][0]] = j
+
                     steplist = mrp_routing_workcenters[i["id"]]
-                    # sequence cannot be trusted in odoo12
                     counter = 0
                     for step in steplist:
                         counter = counter + 1
@@ -998,16 +1024,16 @@ class exporter(object):
                             if step[4]
                             else "",
                         )
-                        if step[2] == steplist[-1][2]:
+                        first_flow = True
+                        if step == steplist[-1]:
                             # Add producing flows on the last routing step
+                            first_flow = False
                             yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
                                 i["product_qty"]
                                 * getattr(i, "product_efficiency", 1.0)
                                 * uom_factor,
                                 quoteattr(product_buf["name"]),
                             )
-
-                            yield "</flows>\n"
                             self.bom_producedQty[
                                 (
                                     "%s - %s - %s"
@@ -1019,43 +1045,19 @@ class exporter(object):
                                 * getattr(i, "product_efficiency", 1.0)
                                 * uom_factor
                             )
-                        if step[2] == steplist[0][2]:
-                            # All consuming flows on the first routing step.
-                            # If the same component is consumed multiple times in the same BOM
-                            # we sum up all quantities in a single flow. We assume all of them
-                            # have the same effectivity.
-                            fl = {}
-
-                            for j in bom_lines_model.browse(i["bom_line_ids"]).read(
-                                bom_lines_fields
+                        for j in fl.values():
+                            if j["qty"] > 0 and (
+                                (j["operation_id"] and j["operation_id"][0] == step[6])
+                                or (not j["operation_id"] and step == steplist[0])
                             ):
-                                if j['xx_explode']:
-                                    continue
-
-                                product = self.product_product.get(
-                                    j["product_id"][0], None
-                                )
-                                if not product:
-                                    continue
-                                if j["product_id"][0] in fl:
-                                    fl[j["product_id"][0]]['product_qty'] += j['product_qty']
-                                else:
-                                    fl[j["product_id"][0]] = j
-                            yield "<flows>\n"
-                            for j in fl:
-                                product = self.product_product[j]
-                                qty = self.convert_qty_uom(
-                                        fl[j]["product_qty"],
-                                        fl[j]["product_uom_id"][0],
-                                        self.product_product[fl[j]["product_id"][0]]["template"],
-                                    )
-
-                                if qty <= 0:
-                                    continue
+                                if first_flow:
+                                    first_flow = False
+                                    yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                                    qty,
+                                    j["qty"],
                                     quoteattr(product["name"]),
                                 )
+                        if not first_flow:
                             yield "</flows>\n"
                         yield "</operation></suboperation>\n"
                     yield "</suboperations>\n"
