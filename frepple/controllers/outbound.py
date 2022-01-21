@@ -1313,8 +1313,8 @@ class exporter(object):
                 elif weekday == 5:
                     # PO received on saturday -> material available next tuesday
                     end += timedelta(days=3)
-                elif weekday == 6:
-                    # PO received on sunday -> material available next tuesday
+                else:
+                    # PO received on sunday -> material available 2 days later
                     end += timedelta(days=2)
                 end = end.strftime(self.timeformat)
                 qty = self.convert_qty_uom(
