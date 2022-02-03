@@ -568,7 +568,7 @@ class exporter(object):
             "uom_id",
             "categ_id",
         ]
-        recs = m.search([("type", "!=", "service")])
+        recs = m.search([("type", "!=", "service"),("xx_product_flag", "!=", "option")])
         self.product_templates = {}
         for i in recs.read(fields):
             self.product_templates[i["id"]] = i
@@ -828,7 +828,7 @@ class exporter(object):
             )  # TODO avoid multiple bom on single template
             if not product_buf:
                 logger.warning(
-                    "skipping %s %s" % (i["product_tmpl_id"][0], i["routing_id"])
+                    "skipping %s %s" % (i["product_tmpl_id"][0], i["product_tmpl_id"][1])
                 )
                 continue
             uom_factor = self.convert_qty_uom(
@@ -1055,7 +1055,7 @@ class exporter(object):
                                     yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                                     j["qty"],
-                                    quoteattr(product["name"]),
+                                    quoteattr(product_buf["name"]),
                                 )
                         if not first_flow:
                             yield "</flows>\n"
