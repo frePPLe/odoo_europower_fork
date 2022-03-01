@@ -29,14 +29,21 @@ logger = logging.getLogger(__name__)
 
 
 class exporter(object):
-    def __init__(self, req, uid, database=None, company=None, mode=1, timezone="UTC"):
+    def __init__(self, req, uid, database=None, company=None, mode=1, timezone=None):
         self.database = database
         self.company = company
-        if timezone not in pytz.all_timezones:
-            logger.warning("Invalid timezone: %s. Using UTC" % (timezone,))
-            self.timezone = "UTC"
-        else:
-            self.timezone = timezone
+        self.timezone = timezone
+        if timezone:
+            if timezone not in pytz.all_timezones:
+                logger.warning("Invalid timezone URL argument: %s." % (timezone,))
+                self.timezone = None
+            else:
+                # Valid timezone override in the url
+                self.timezone = timezone
+        if not self.timezone:
+            # Default timezone: use the timezone of the connector user (or UTC if not set)
+            user = req.env["res.users"].browse(uid)
+            self.timezone = user.tz or "UTC"
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
 
         # The mode argument defines different types of runs:
@@ -139,7 +146,7 @@ class exporter(object):
             )  # TODO NOT USED RIGHT NOW - add parameter in frepple for this
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
-            self.calendar = i["calendar"] and i["calendar"][1] or "Working hours"
+            self.calendar = i["calendar"] and i["calendar"][1] or None
             self.mfg_location = (
                 i["manufacturing_warehouse"]
                 and i["manufacturing_warehouse"][1]
@@ -151,7 +158,7 @@ class exporter(object):
             self.security_lead = 0
             self.po_lead = 0
             self.manufacturing_lead = 0
-            self.calendar = "Working hours"
+            self.calendar = None
             self.mfg_location = self.company
 
     def load_uom(self):
@@ -293,6 +300,11 @@ class exporter(object):
             for i in calendars:
                 priority_attendance = 1000
                 priority_leave = 10
+                if cal_tz[i] != self.timezone:
+                    logger.warning(
+                        "timezone is different on workcenter %s and connector user. Working hours will not be synced correctly to frepple."
+                        % i
+                    )
                 yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
                 for j in calendars[i]:
                     yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
@@ -332,7 +344,6 @@ class exporter(object):
                     else:
                         priority_leave += 1
                 yield "</buckets></calendar>\n"
-                logger.info("leaving")
 
             yield "</calendars>\n"
         except Exception as e:
@@ -376,11 +387,17 @@ class exporter(object):
                 "view_location_id",
             ]
             for i in recs.read(fields):
-                yield '<location name=%s subcategory="%s"><available name=%s/></location>\n' % (
-                    quoteattr(i["name"]),
-                    i["id"],
-                    quoteattr(self.calendar),
-                )
+                if self.calendar:
+                    yield '<location name=%s subcategory="%s"><available name=%s/></location>\n' % (
+                        quoteattr(i["name"]),
+                        i["id"],
+                        quoteattr(self.calendar),
+                    )
+                else:
+                    yield '<location name=%s subcategory="%s"></location>\n' % (
+                        quoteattr(i["name"]),
+                        i["id"],
+                    )
                 childlocs[i["lot_stock_id"][0]] = i["name"]
                 childlocs[i["wh_input_stock_loc_id"][0]] = i["name"]
                 childlocs[i["wh_output_stock_loc_id"][0]] = i["name"]
@@ -999,6 +1016,9 @@ class exporter(object):
                             self.product_product[j["product_id"][0]]["template"],
                         )
                         if j["product_id"][0] in fl:
+                            # If the same component is consumed multiple times in the same BOM
+                            # we sum up all quantities in a single flow. We assume all of them
+                            # have the same effectivity.
                             fl[j["product_id"][0]]["qty"] += qty
                         else:
                             j["qty"] = qty
@@ -1504,8 +1524,6 @@ class exporter(object):
                 inventory[(item["name"], location)] = i[2] + inventory.get(
                     (item["name"], location), 0
                 )
-        for i in self.map_locations:
-            logger.info("%s %s" % (i, self.map_locations[i]))
         for key, val in inventory.items():
             buf = "%s @ %s" % (key[0], key[1])
             yield '<buffer name=%s onhand="%f"><item name=%s/><location name=%s/></buffer>\n' % (
