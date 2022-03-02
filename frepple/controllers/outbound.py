@@ -1168,7 +1168,7 @@ class exporter(object):
                     or j["date_order"]
                 )
             if type(due_date) is date:
-                due_date = datetime.combine(due_date, datetime.now().time())
+                due_date = datetime.combine(due_date, datetime.min.time())
             due = (
                 due_date
                 .astimezone(timezone(self.timezone))
