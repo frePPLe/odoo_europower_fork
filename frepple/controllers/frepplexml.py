@@ -27,15 +27,15 @@ from odoo.addons.web.controllers.main import db_monodb, ensure_db
 from odoo.addons.frepple.controllers.outbound import exporter
 from odoo.addons.frepple.controllers.inbound import importer
 
+logger = logging.getLogger(__name__)
+
 try:
     import jwt
 except Exception:
     logger.error(
-        "PyJWT module has not been installed. Please install the library from https://pypi.python.org/pypi/PyJWT"
+        "PyJWT module has not been installed. "
+        "Please install the library from https://pypi.python.org/pypi/PyJWT"
     )
-
-
-logger = logging.getLogger(__name__)
 
 
 class XMLController(odoo.http.Controller):

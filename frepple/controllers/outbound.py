@@ -19,7 +19,7 @@ import logging
 import pytz
 
 from xml.sax.saxutils import quoteattr
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from operator import itemgetter
 from pytz import timezone
 
@@ -1155,8 +1155,8 @@ class exporter(object):
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
-            due = (
-                (
+
+            due_date = (
                     # Epower due date:
                     # 1) Delivery date at line level (custom)
                     # 2) Delivery date at order level
@@ -1167,6 +1167,10 @@ class exporter(object):
                     or j.get("xx_requested_delivery_date", False)
                     or j["date_order"]
                 )
+            if type(due_date) is date:
+                due_date = datetime.combine(due_date, datetime.now().time())
+            due = (
+                due_date
                 .astimezone(timezone(self.timezone))
                 .strftime(self.timeformat)
             )
@@ -1175,7 +1179,7 @@ class exporter(object):
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
             state = j.get("state", "sale")
-            if state == "draft":
+            if state in ("draft", "waiting_for_approval"):
                 status = "quote"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
