@@ -1121,6 +1121,7 @@ class exporter(object):
             "product_uom_qty",
             "product_uom",
             "order_id",
+            "sale_delivery_date",  # Custom Epower
         ]
         so_line = [i for i in recs.read(fields)]
 
@@ -1134,6 +1135,7 @@ class exporter(object):
             "date_order",
             "picking_policy",
             "warehouse_id",
+            "xx_requested_delivery_date",  # Custom Epower
         ]
         so = {}
         for i in m.browse(ids).read(fields):
@@ -1154,7 +1156,17 @@ class exporter(object):
                 # Not interested in this sales order...
                 continue
             due = (
-                (j.get("commitment_date", False) or j["date_order"])
+                (
+                    # Epower due date:
+                    # 1) Delivery date at line level (custom)
+                    # 2) Delivery date at order level
+                    # 3) Customer delivery date (custom)
+                    # 4) Order entry date
+                    i.get("sale_delivery_date", False)
+                    or j.get("commitment_date", False)
+                    or j.get("xx_requested_delivery_date", False)
+                    or j["date_order"]
+                )
                 .astimezone(timezone(self.timezone))
                 .strftime(self.timeformat)
             )
