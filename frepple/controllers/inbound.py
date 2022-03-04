@@ -190,9 +190,9 @@ class importer(object):
                         [("id", "=", so_line_id)]
                     )
                     if so_line:
-                        so_line.sale_delivery_date = date(datetime.strptime(
-                            deliverydate, "%Y-%m-%d %H:%M:%S")
-                        )
+                        so_line.sale_delivery_date = (
+                            datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
+                        ).date()
                 except Exception as e:
                     logger.error("Exception %s" % e)
                     msg.append(str(e))
