@@ -183,13 +183,10 @@ class importer(object):
             elif event == "end" and elem.tag == "demand":
                 try:
                     deliverydate = elem.get("deliverydate")
-                    s = elem.get("name").split()
-                    so_line_id = s[len(s) - 1]
-
-                    so_line = self.env["sale.order.line"].search(
-                        [("id", "=", so_line_id)]
-                    )
-                    if so_line:
+                    sol_name = elem.get("name").rsplit(" ", 1)
+                    for so_line in self.env["sale.order.line"].search(
+                        [("id", "=", sol_name[1])], limit=1
+                    ):
                         so_line.sale_delivery_date = (
                             datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
                         ).date()
