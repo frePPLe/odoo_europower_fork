@@ -771,7 +771,7 @@ class exporter(object):
             "bom_id",
             "workcenter_id",
             "sequence",
-            "time_cycle",
+            "xx_total_time_cycle",  # Custom epower field
             "skill",
             "search_mode",
         ]
@@ -786,14 +786,14 @@ class exporter(object):
                 if not self.manage_work_orders:
                     for r in mrp_routing_workcenters[i["bom_id"][0]]:
                         if r[0] == i["workcenter_id"][1]:
-                            r[1] += i["time_cycle"]
+                            r[1] += i["xx_total_time_cycle"]
                             exists = True
                             break
                 if not exists:
                     mrp_routing_workcenters[i["bom_id"][0]].append(
                         [
                             i["workcenter_id"][1],
-                            i["time_cycle"],
+                            i["xx_total_time_cycle"],
                             i["sequence"],
                             i["name"],
                             i["skill"][1] if i["skill"] else None,
@@ -805,7 +805,7 @@ class exporter(object):
                 mrp_routing_workcenters[i["bom_id"][0]] = [
                     [
                         i["workcenter_id"][1],
-                        i["time_cycle"],
+                        i["xx_total_time_cycle"],
                         i["sequence"],
                         i["name"],
                         i["skill"][1] if i["skill"] else None,
