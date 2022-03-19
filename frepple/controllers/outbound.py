@@ -594,7 +594,9 @@ class exporter(object):
             "uom_id",
             "categ_id",
         ]
-        recs = m.search([("type", "!=", "service"),("xx_product_flag", "!=", "option")])
+        recs = m.search(
+            [("type", "!=", "service"), ("xx_product_flag", "!=", "option")]
+        )
         self.product_templates = {}
         for i in recs.read(fields):
             self.product_templates[i["id"]] = i
@@ -854,7 +856,8 @@ class exporter(object):
             )  # TODO avoid multiple bom on single template
             if not product_buf:
                 logger.warning(
-                    "skipping %s %s" % (i["product_tmpl_id"][0], i["product_tmpl_id"][1])
+                    "skipping %s %s"
+                    % (i["product_tmpl_id"][0], i["product_tmpl_id"][1])
                 )
                 continue
             uom_factor = self.convert_qty_uom(
@@ -1084,7 +1087,9 @@ class exporter(object):
                                     yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                                     j["qty"],
-                                    quoteattr(self.product_product[j["product_id"][0]]["name"]),
+                                    quoteattr(
+                                        self.product_product[j["product_id"][0]]["name"]
+                                    ),
                                 )
                         if not first_flow:
                             yield "</flows>\n"
@@ -1166,23 +1171,19 @@ class exporter(object):
                 continue
 
             due_date = (
-                    # Epower due date:
-                    # 1) Delivery date at line level (custom)
-                    # 2) Delivery date at order level
-                    # 3) Customer delivery date (custom)
-                    # 4) Order entry date
-                    i.get("sale_delivery_date", False)
-                    or j.get("commitment_date", False)
-                    or j.get("xx_requested_delivery_date", False)
-                    or j["date_order"]
-                )
+                # Epower due date:
+                # 1) Delivery date at line level (custom)
+                # 2) Delivery date at order level
+                # 3) Customer delivery date (custom)
+                # 4) Order entry date
+                i.get("sale_delivery_date", False)
+                or j.get("commitment_date", False)
+                or j.get("xx_requested_delivery_date", False)
+                or j["date_order"]
+            )
             if type(due_date) is date:
                 due_date = datetime.combine(due_date, datetime.min.time())
-            due = (
-                due_date
-                .astimezone(timezone(self.timezone))
-                .strftime(self.timeformat)
-            )
+            due = due_date.astimezone(timezone(self.timezone)).strftime(self.timeformat)
 
             priority = 1  # We give all customer orders the same default priority
 
