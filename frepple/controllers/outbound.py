@@ -1264,7 +1264,9 @@ class exporter(object):
             #                             priority, minship,status, quoteattr(product['name']),
             #                             quoteattr(customer), quoteattr(location)
             #                         )
-            yield '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/></demand>\n' % (
+            yield """<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>
+                 <booleanproperty name="exported_to_odoo" value="%s"/>
+               </demand>\n""" % (
                 quoteattr(name),
                 quoteattr(batch),
                 qty,
@@ -1275,6 +1277,7 @@ class exporter(object):
                 quoteattr(product["name"]),
                 quoteattr(customer),
                 quoteattr(location),
+                "true" if i.get("sale_delivery_date", False) else "false",
             )
 
         yield "</demands>\n"
