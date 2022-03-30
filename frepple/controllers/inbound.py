@@ -151,8 +151,10 @@ class importer(object):
                     # elif ????:
                     else:
                         # Create manufacturing order
-                        mo = mfg_order.create(
-                            {
+                        picking_type_id = mfg_order._get_default_picking_type()
+                        bom_id = self.env['mrp.bom'].browse(int(elem.get("operation").rsplit(" ", 1)[1]))
+
+                        mo = mfg_order.create({
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": elem.get("start"),
                                 "date_planned_finished": elem.get("end"),
@@ -161,15 +163,23 @@ class importer(object):
                                 "product_uom_id": int(uom_id),
                                 "location_src_id": int(elem.get("location_id")),
                                 "location_dest_id": int(elem.get("location_id")),
-                                "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
+                                "bom_id": bom_id.id,
+                                "picking_type_id": bom_id.picking_type_id.id or picking_type_id,
                                 "qty_producing": 0.00,
                                 # TODO no place to store the criticality
                                 # elem.get('criticality'),
                                 "origin": "frePPLe",
-                            }
-                        )
+                            })
                         try:
                             mo._onchange_workorder_ids()
+                        except Exception:
+                            pass
+                        try:
+                            mo._onchange_bom_id()
+                        except Exception:
+                            pass
+                        try:
+                            mo.onchange_picking_type()
                         except Exception:
                             pass
                         try:
