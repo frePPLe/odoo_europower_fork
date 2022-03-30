@@ -168,12 +168,30 @@ class importer(object):
                                 "origin": "frePPLe",
                             }
                         )
-                        mo._onchange_workorder_ids()
-                        mo._onchange_move_raw()
-                        mo._create_update_move_finished()
-                        mo.action_confirm()
-                        mo._plan_workorders()
-                        mo.action_assign()
+                        try:
+                            mo._onchange_workorder_ids()
+                        except Exception:
+                            pass
+                        try:
+                            mo._onchange_move_raw()
+                        except Exception:
+                            pass
+                        try:
+                            mo._create_update_move_finished()
+                        except Exception:
+                            pass
+                        try:
+                            mo.action_confirm()
+                        except Exception:
+                            pass
+                        try:
+                            mo._plan_workorders()
+                        except Exception:
+                            pass
+                        try:
+                            mo.action_assign()
+                        except Exception:
+                            pass
                         countmfg += 1
                 except Exception as e:
                     logger.error("Exception %s" % e)
