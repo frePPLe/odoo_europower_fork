@@ -174,10 +174,10 @@ class importer(object):
                             mo._onchange_workorder_ids()
                         except Exception:
                             pass
-                        try:
-                            mo._onchange_bom_id()
-                        except Exception:
-                            pass
+                        # try:
+                        #     mo._onchange_bom_id()
+                        # except Exception:
+                        #     pass
                         try:
                             mo.onchange_picking_type()
                         except Exception:
