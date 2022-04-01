@@ -182,10 +182,10 @@ class importer(object):
                             mo.onchange_picking_type()
                         except Exception:
                             pass
-                        # try:
-                        #     mo._onchange_move_raw()
-                        # except Exception:
-                        #     pass
+                        try:
+                            mo._onchange_move_raw()
+                        except Exception:
+                            pass
                         try:
                             mo._create_update_move_finished()
                         except Exception:
