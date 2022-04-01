@@ -845,7 +845,7 @@ class exporter(object):
             "type",
             "bom_line_ids",
         ]
-        for i in bom_recs.read(bom_fields):
+        for i in bom_recs.with_context(frepple_read=True).read(bom_fields):
             # Determine the location
             location = self.mfg_location
             logger.info("bom ID: %s" % i["id"])
