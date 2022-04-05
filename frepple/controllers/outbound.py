@@ -1184,6 +1184,10 @@ class exporter(object):
             if type(due_date) is date:
                 due_date = datetime.combine(due_date, datetime.min.time())
             due = due_date.astimezone(timezone(self.timezone)).strftime(self.timeformat)
+            logger.info(
+                "Saleorder line %s %s %s %s %s"
+                % (name, due_date, due, self.timezone, due_date.astimezone().tzinfo)
+            )
 
             priority = 1  # We give all customer orders the same default priority
 
