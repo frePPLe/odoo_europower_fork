@@ -6,3 +6,4 @@ from . import mrp_workcenter_inherit
 from . import mrp_routing_workcenter_inherit
 from . import mrp_workcenter_skill
 from . import product_supplierinfo_inherit
+from . import sale_order
