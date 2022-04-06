@@ -1396,7 +1396,7 @@ class exporter(object):
                     continue
                 operation = u"%s @ %s %d" % (
                     item["name"],
-                    i["location_dest_id"][1],
+                    location,
                     i["bom_id"][0],
                 )
                 try:
