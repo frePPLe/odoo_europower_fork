@@ -202,6 +202,12 @@ class importer(object):
                             mo.action_assign()
                         except Exception:
                             pass
+                        try:
+                            mo.picking_ids.action_confirm()
+                            mo.picking_ids.action_assign()
+                        except Exception:
+                            pass
+
                         countmfg += 1
                 except Exception as e:
                     logger.error("Exception %s" % e)
