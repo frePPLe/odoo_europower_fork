@@ -13,7 +13,7 @@ class SaleOrder(models.Model):
     @api.depends('order_line.frepple_write_date')
     def _compute_frepple_write_date(self):
         for order in self:
-            order.frepple_write_date = max(order.order_line.filtered(lambda l: l.frepple_write_date).mapped('frepple_write_date'))
+            order.frepple_write_date = max(order.order_line.filtered(lambda l: l.frepple_write_date).mapped('frepple_write_date') or [False])
 
 
 class SaleOrderLine(models.Model):
