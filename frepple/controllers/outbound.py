@@ -1279,7 +1279,11 @@ class exporter(object):
                 (
                     "order_id.state",
                     "not in",
-                    ("draft", "sent", "bid", "confirmed", "cancel"),
+                    # Comment out on of the following alternative approaches:
+                    # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
+                    # ("draft", "sent", "bid", "to approve", "confirmed", "cancel"),
+                    # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
+                    ("bid", "confirmed", "cancel"),
                 ),
                 ("order_id.state", "=", False),
             ]
