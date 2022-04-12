@@ -224,6 +224,7 @@ class importer(object):
                         so_line.sale_delivery_date = (
                             datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
                         ).date()
+                        so_line.frepple_write_date = datetime.now()
                 except Exception as e:
                     logger.error("Exception %s" % e)
                     msg.append(str(e))
