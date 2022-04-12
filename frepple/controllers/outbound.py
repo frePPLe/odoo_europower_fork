@@ -102,8 +102,10 @@ class exporter(object):
                 yield i
             for i in self.export_skills():
                 yield i
-            for i in self.export_workcenters():
-                yield i
+            # Epower manually updates the resource definitions in frepple.
+            # Resource names in frepple must obviously still match the odoo workcenters names.
+            # for i in self.export_workcenters():
+            #     yield i
             for i in self.export_workcenterskills():
                 yield i
         for i in self.export_items():
