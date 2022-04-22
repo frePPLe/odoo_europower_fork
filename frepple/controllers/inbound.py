@@ -195,7 +195,7 @@ class importer(object):
                         except Exception:
                             pass
                         try:
-                            mo._plan_workorders()
+                            mo.button_plan()
                         except Exception:
                             pass
                         try:
