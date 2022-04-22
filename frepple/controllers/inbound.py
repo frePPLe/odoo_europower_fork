@@ -137,6 +137,7 @@ class importer(object):
                                     "name": elem.get("item"),
                                 }
                             )
+                            po_line._product_id_change()
                             product_supplier_dict[(item_id, supplier_id)] = po_line
 
                         else:
