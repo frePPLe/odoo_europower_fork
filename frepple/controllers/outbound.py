@@ -416,7 +416,7 @@ class exporter(object):
         """
         self.map_customers = {}
         m = self.env["res.partner"]
-        recs = m.search([("is_company", "=", True)])
+        recs = m.search([])
         if recs:
             yield "<!-- customers -->\n"
             yield "<customers>\n"
