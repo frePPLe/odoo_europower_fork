@@ -1451,10 +1451,13 @@ class exporter(object):
                     )
                     / factor
                 )
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
+                    # Epower needs to reschedule all open MO.
+                    "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                    # "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
         yield "</operationplans>\n"
