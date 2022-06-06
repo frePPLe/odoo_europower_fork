@@ -1167,16 +1167,11 @@ class exporter(object):
             if type(due_date) is date:
                 due_date = datetime.combine(due_date, datetime.min.time())
             due = due_date.astimezone(timezone(self.timezone)).strftime(self.timeformat)
-            logger.info(
-                "Saleorder line %s %s %s %s %s"
-                % (name, due_date, due, self.timezone, due_date.astimezone().tzinfo)
-            )
-
-            priority = 1  # We give all customer orders the same default priority
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
             state = j.get("state", "sale")
             if state in ("draft", "waiting_for_approval", "sent"):
+                priority = 10
                 status = "inquiry"  #  Inquiries don't reserve capacity and materials
                 # status = "quote"    #  Inquiries do reserve capacity and materials
                 qty = self.convert_qty_uom(
@@ -1185,6 +1180,7 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
+                priority = 1 if i.get("sale_delivery_date", False) else 10
                 qty = i["product_uom_qty"] - i["qty_delivered"]
                 if qty <= 0:
                     status = "closed"
@@ -1201,6 +1197,7 @@ class exporter(object):
                         self.product_product[i["product_id"][0]]["template"],
                     )
             elif state == "done":
+                priority = 0
                 status = "closed"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
@@ -1208,6 +1205,7 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "cancel":
+                priority = 0
                 status = "canceled"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
