@@ -1392,7 +1392,7 @@ class exporter(object):
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
         m = self.env["mrp.production"]
-        recs = m.search([("state", "in", ["progress", "confirmed"])])
+        recs = m.search([("state", "in", ["progress", "confirmed", "to_close"])])
         fields = [
             "bom_id",
             "date_start",
