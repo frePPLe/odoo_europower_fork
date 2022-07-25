@@ -672,11 +672,20 @@ class exporter(object):
                         results = s.search([("product_tmpl_id", "=", tmpl["id"])]).read(
                             s_fields
                         )
+                    suppliers = set()
                     for sup in results:
                         if not exists:
                             exists = True
                             yield "<itemsuppliers>\n"
                         name = "%d %s" % (sup["name"][0], sup["name"][1])
+                        if (
+                            name in suppliers
+                            and not sup["date_end"]
+                            and not sup["date_start"]
+                        ):
+                            # Avoid multiple records for the same supplier (unless there is date effecitivity). Keep only the first.
+                            continue
+                        suppliers.add(name)
                         if sup.get("is_subcontractor", False):
                             if not hasattr(tmpl, "subcontractors"):
                                 tmpl["subcontractors"] = []
