@@ -1162,20 +1162,27 @@ class exporter(object):
                 # Not interested in this sales order...
                 continue
 
-            due_date = (
-                # Epower due date:
-                # 1) Delivery date at line level (custom)
-                # 2) Delivery date at order level
-                # 3) Customer delivery date (custom)
-                # 4) Order entry date
-                i.get("sale_delivery_date", False)
-                or j.get("commitment_date", False)
-                or j.get("xx_requested_delivery_date", False)
-                or j["date_order"]
-            )
+            # Old Epower due date logic:
+            #     # 1) Delivery date at line level (custom)
+            #     # 2) Delivery date at order level
+            #     # 3) Customer delivery date (custom)
+            #     # 4) Order entry date
+            # due_date = (
+            #     i.get("sale_delivery_date", False)
+            #     or j.get("commitment_date", False)
+            #     or j.get("xx_requested_delivery_date", False)
+            #     or j["date_order"]
+            # )
+            # Epower due date logic:
+            # Use custom field xx_requested_delivery_date instead of standard commitment_date field
+            due_date = j.get("xx_requested_delivery_date", False) or j["date_order"]
             if type(due_date) is date:
                 due_date = datetime.combine(due_date, datetime.min.time())
-            due = due_date.astimezone(timezone(self.timezone)).strftime(self.timeformat)
+            due = (
+                due_date.astimezone(timezone(self.timezone))
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .strftime(self.timeformat)
+            )
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
             state = j.get("state", "sale")
