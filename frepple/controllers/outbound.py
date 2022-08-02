@@ -1185,7 +1185,12 @@ class exporter(object):
                 .strftime(self.timeformat)
             )
 
-            sale_delivery_date = i.get("sale_delivery_date", False)
+            sale_delivery_date = (
+                i.get("sale_delivery_date", False)
+                or j.get("commitment_date", False)
+                or j.get("xx_requested_delivery_date", False)
+                or j["date_order"]
+            )
             if sale_delivery_date:
                 sale_delivery_date = (
                     datetime.combine(sale_delivery_date, datetime.min.time())
