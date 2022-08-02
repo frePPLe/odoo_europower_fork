@@ -1129,6 +1129,7 @@ class exporter(object):
             "picking_policy",
             "warehouse_id",
             "xx_requested_delivery_date",  # Custom Epower
+            "xx_priority"
         ]
         so = {}
         for i in m.browse(ids).read(fields):
@@ -1184,6 +1185,15 @@ class exporter(object):
                 .strftime(self.timeformat)
             )
 
+            sale_delivery_date = i.get("sale_delivery_date", False)
+            if sale_delivery_date:
+                sale_delivery_date = (
+                    datetime.combine(sale_delivery_date, datetime.min.time())
+                    .astimezone(timezone(self.timezone))
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .strftime(self.timeformat)
+                )
+
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
             state = j.get("state", "sale")
             if state in ("draft", "waiting_for_approval", "sent"):
@@ -1196,7 +1206,8 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
-                priority = 1 if i.get("sale_delivery_date", False) else 10
+                #priority = 1 if i.get("sale_delivery_date", False) else 10
+                priority = int(j.get('xx_priority', 10))
                 qty = i["product_uom_qty"] - i["qty_delivered"]
                 if qty <= 0:
                     status = "closed"
@@ -1271,6 +1282,7 @@ class exporter(object):
             #                         )
             yield """<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>
                  <booleanproperty name="exported_to_odoo" value="%s"/>
+                 <dateproperty name="odoo_delivery_date" value="%s"/>
                </demand>\n""" % (
                 quoteattr(name),
                 quoteattr(batch),
@@ -1283,6 +1295,8 @@ class exporter(object):
                 quoteattr(customer),
                 quoteattr(location),
                 "true" if i.get("sale_delivery_date", False) else "false",
+                sale_delivery_date
+
             )
 
         yield "</demands>\n"
@@ -1473,8 +1487,8 @@ class exporter(object):
                     startdate,
                     qty,
                     # Epower needs to reschedule all open MO.
-                    "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                    # "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                    #"approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                    "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
         yield "</operationplans>\n"

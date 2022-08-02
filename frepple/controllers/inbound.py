@@ -17,8 +17,11 @@
 #
 import odoo
 import logging
+import pytz
+
 from xml.etree.cElementTree import iterparse
 from datetime import datetime
+from pytz import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -103,9 +106,15 @@ class importer(object):
                                 }
                             )
                             supplier_reference[supplier_id] = po.id
+                            po.onchange_partner_id()
 
                         quantity = elem.get("quantity")
-                        date_planned = elem.get("end")
+                        date_planned = (
+                            timezone(self.env.user.tz)
+                            .localize(datetime.strptime(elem.get("end"), "%Y-%m-%d %H:%M:%S"),
+                                      is_dst=None)
+                            .astimezone(pytz.utc)
+                        ).strftime("%Y-%m-%d %H:%M:%S")
                         if (item_id, supplier_id) not in product_supplier_dict:
                             price_unit = 0
                             product = self.env["product.product"].browse(int(item_id))
@@ -155,10 +164,23 @@ class importer(object):
                         picking_type_id = mfg_order._get_default_picking_type()
                         bom_id = self.env['mrp.bom'].browse(int(elem.get("operation").rsplit(" ", 1)[1]))
 
+                        date_planned_start = (
+                            timezone(self.env.user.tz)
+                            .localize(datetime.strptime(elem.get("start"), "%Y-%m-%d %H:%M:%S"),
+                                      is_dst=None)
+                            .astimezone(pytz.utc)
+                        ).strftime("%Y-%m-%d %H:%M:%S")
+                        date_planned_finished = (
+                            timezone(self.env.user.tz)
+                            .localize(datetime.strptime(elem.get("end"), "%Y-%m-%d %H:%M:%S"),
+                                      is_dst=None)
+                            .astimezone(pytz.utc)
+                        ).strftime("%Y-%m-%d %H:%M:%S")
+
                         mo = mfg_order.create({
                                 "product_qty": elem.get("quantity"),
-                                "date_planned_start": elem.get("start"),
-                                "date_planned_finished": elem.get("end"),
+                                "date_planned_start": date_planned_start,
+                                "date_planned_finished": date_planned_finished,
                                 "product_id": int(item_id),
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
@@ -217,7 +239,12 @@ class importer(object):
                 root.clear()
             elif event == "end" and elem.tag == "demand":
                 try:
-                    deliverydate = elem.get("deliverydate")
+                    deliverydate = (
+                        timezone(self.env.user.tz)
+                        .localize(datetime.strptime(elem.get("deliverydate"), "%Y-%m-%d %H:%M:%S"),
+                                  is_dst=None)
+                        .astimezone(pytz.utc)
+                    ).strftime("%Y-%m-%d %H:%M:%S")
                     sol_name = elem.get("name").rsplit(" ", 1)
                     for so_line in self.env["sale.order.line"].search(
                         [("id", "=", sol_name[1])], limit=1
@@ -226,6 +253,8 @@ class importer(object):
                             datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
                         ).date()
                         so_line.frepple_write_date = datetime.now()
+                        so_line.order_id._compute_commitment_date()
+
                 except Exception as e:
                     logger.error("Exception %s" % e)
                     msg.append(str(e))
