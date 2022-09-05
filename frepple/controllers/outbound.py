@@ -1286,6 +1286,7 @@ class exporter(object):
             #                             quoteattr(customer), quoteattr(location)
             #                         )
             yield """<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>
+                 <owner name=%s policy="%s" xsi:type="demand_group"/>
                  <booleanproperty name="exported_to_odoo" value="%s"/>
                  <dateproperty name="odoo_delivery_date" value="%s"/>
                </demand>\n""" % (
@@ -1299,6 +1300,8 @@ class exporter(object):
                 quoteattr(product["name"]),
                 quoteattr(customer),
                 quoteattr(location),
+                quoteattr(i["order_id"][1]),
+                "alltogether" if j["picking_policy"] == "one" else "independent",
                 "true" if i.get("sale_delivery_date", False) else "false",
                 sale_delivery_date
 
