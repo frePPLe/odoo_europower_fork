@@ -1122,7 +1122,7 @@ class exporter(object):
             "picking_policy",
             "warehouse_id",
             "xx_requested_delivery_date",  # Custom Epower
-            "xx_priority"
+            "xx_priority",
         ]
         so = {}
         for i in m.browse(ids).read(fields):
@@ -1217,8 +1217,8 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
-                #priority = 1 if i.get("sale_delivery_date", False) else 10
-                priority = int(j.get('xx_priority', 10))
+                # priority = 1 if i.get("sale_delivery_date", False) else 10
+                priority = int(j.get("xx_priority", 10))
                 qty = i["product_uom_qty"] - i["qty_delivered"]
                 if qty <= 0:
                     status = "closed"
@@ -1524,21 +1524,23 @@ class exporter(object):
                     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
-                for mv in self.generator.getData(
-                    "stock.move",
-                    ids=i["move_raw_ids"],
-                    fields=[
-                        "product_id",
-                        "product_qty",
-                        "product_uom",
-                        "has_move_lines",
-                        "date",
-                        "reference",
-                        "move_line_ids",
-                        "workorder_id",
-                        "should_consume_qty",
-                        "reserved_availability",
-                    ],
+                for mv in (
+                    self.env["stock.move"]
+                    .browse(i["move_raw_ids"])
+                    .read(
+                        [
+                            "product_id",
+                            "product_qty",
+                            "product_uom",
+                            "has_move_lines",
+                            "date",
+                            "reference",
+                            "move_line_ids",
+                            "workorder_id",
+                            "should_consume_qty",
+                            "reserved_availability",
+                        ]
+                    )
                 ):
                     item = (
                         self.product_product[mv["product_id"][0]]
