@@ -1107,6 +1107,7 @@ class exporter(object):
             "product_uom",
             "order_id",
             "sale_delivery_date",  # Custom Epower
+            "xx_do_not_deliver_before",  # Custom Epower
         ]
         so_line = [i for i in recs.read(fields)]
 
@@ -1187,6 +1188,19 @@ class exporter(object):
                 sale_delivery_date = (
                     datetime.combine(sale_delivery_date, datetime.min.time())
                     .astimezone(timezone(self.timezone))
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .strftime(self.timeformat)
+                )
+
+            # Epower: dont_deliver_before
+            dont_deliver_before = i.get("xx_do_not_deliver_before", False)
+            if dont_deliver_before:
+                if type(dont_deliver_before) is date:
+                    dont_deliver_before = datetime.combine(
+                        dont_deliver_before, datetime.min.time()
+                    )
+                dont_deliver_before = (
+                    dont_deliver_before.astimezone(timezone(self.timezone))
                     .replace(hour=0, minute=0, second=0, microsecond=0)
                     .strftime(self.timeformat)
                 )
@@ -1281,6 +1295,7 @@ class exporter(object):
                  <owner name=%s policy="%s" xsi:type="demand_group"/>
                  <booleanproperty name="exported_to_odoo" value="%s"/>
                  <dateproperty name="odoo_delivery_date" value="%s"/>
+                 %s
                </demand>\n""" % (
                 quoteattr(name),
                 quoteattr(batch),
@@ -1295,8 +1310,11 @@ class exporter(object):
                 quoteattr(i["order_id"][1]),
                 "alltogether" if j["picking_policy"] == "one" else "independent",
                 "true" if i.get("sale_delivery_date", False) else "false",
-                sale_delivery_date
-
+                sale_delivery_date,
+                '<dateproperty name="dont_deliver_before" value="%s"/>'
+                % dont_deliver_before
+                if dont_deliver_before
+                else "",
             )
 
         yield "</demands>\n"
