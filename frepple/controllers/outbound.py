@@ -1551,7 +1551,7 @@ class exporter(object):
                         continue
                     qty = self.convert_qty_uom(
                         mv["product_qty"],
-                        mv["product_uom"],
+                        mv["product_uom"][0],
                         self.product_product[mv["product_id"][0]]["template"],
                     )
                     yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
