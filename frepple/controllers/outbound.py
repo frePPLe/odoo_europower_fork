@@ -1122,7 +1122,8 @@ class exporter(object):
             "picking_policy",
             "warehouse_id",
             "xx_requested_delivery_date",  # Custom Epower
-            "xx_priority",
+            "xx_priority",  # Custom Epower
+            "xx_linked_sale_order_id",  # Custom Epower
         ]
         so = {}
         for i in m.browse(ids).read(fields):
@@ -1295,7 +1296,7 @@ class exporter(object):
                  <owner name=%s policy="%s" xsi:type="demand_group"/>
                  <booleanproperty name="exported_to_odoo" value="%s"/>
                  <dateproperty name="odoo_delivery_date" value="%s"/>
-                 %s
+                 %s%s
                </demand>\n""" % (
                 quoteattr(name),
                 quoteattr(batch),
@@ -1314,6 +1315,10 @@ class exporter(object):
                 '<dateproperty name="dont_deliver_before" value="%s"/>'
                 % dont_deliver_before
                 if dont_deliver_before
+                else "",
+                '<stringproperty name="linked_demand" value="%s"/>'
+                % j["xx_linked_sale_order_id"][1]
+                if j.get("xx_linked_sale_order_id", None)
                 else "",
             )
 
