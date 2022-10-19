@@ -1115,6 +1115,7 @@ class exporter(object):
         m = self.env["sale.order"]
         ids = [i["order_id"][0] for i in so_line]
         fields = [
+            "name",
             "state",
             "partner_id",
             "commitment_date",
