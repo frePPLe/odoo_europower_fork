@@ -1126,8 +1126,49 @@ class exporter(object):
             "xx_linked_sale_order_id",  # Custom Epower
         ]
         so = {}
+        linked_so = {}
         for i in m.browse(ids).read(fields):
+            i["owner"] = i["name"]
             so[i["id"]] = i
+            if i["xx_linked_sale_order_id"] and i["state"] not in ("done", "cancel"):
+                linked_so[i["id"]] = i["xx_linked_sale_order_id"][0]
+
+        # Compute owner field for linked sales order groups
+        visited = set()
+        for so_lft in linked_so.keys():
+            if so_lft in visited:
+                continue
+            # Build a list of all sales order ids that are part of the same linked chain.
+            # The logic supports any level of depth of chaining
+            # It also works when there are loops in the chain.
+            group = [so_lft]
+            while True:
+                changes = False
+                for l in group:
+                    if l in linked_so and linked_so[l] not in group:
+                        group.append(linked_so[l])
+                        changes = True
+                        break
+                if not changes:
+                    for so_lft2, so_rght2 in linked_so.items():
+                        if so_rght2 in group and so_lft2 not in group:
+                            group.append(so_lft2)
+                            changes = True
+                            break
+                    if not changes:
+                        break
+            # Set the owner for all sales orders in the group
+            group.sort()
+            group_names = []
+            for x in group:
+                y = so.get(x, None)
+                if y:
+                    group_names.append(y["name"])
+            groupname = " ".join(group_names)
+            for x in group:
+                visited.add(x)
+                so[x]["owner"] = groupname
+                so[x]["picking_policy"] = "one"
 
         # Generate the demand records
         yield "<!-- sales order lines -->\n"
@@ -1296,7 +1337,7 @@ class exporter(object):
                  <owner name=%s policy="%s" xsi:type="demand_group"/>
                  <booleanproperty name="exported_to_odoo" value="%s"/>
                  <dateproperty name="odoo_delivery_date" value="%s"/>
-                 %s%s
+                 %s
                </demand>\n""" % (
                 quoteattr(name),
                 quoteattr(batch),
@@ -1308,17 +1349,13 @@ class exporter(object):
                 quoteattr(product["name"]),
                 quoteattr(customer),
                 quoteattr(location),
-                quoteattr(i["order_id"][1]),
+                quoteattr(j["owner"]),
                 "alltogether" if j["picking_policy"] == "one" else "independent",
                 "true" if i.get("sale_delivery_date", False) else "false",
                 sale_delivery_date,
                 '<dateproperty name="dont_deliver_before" value="%s"/>'
                 % dont_deliver_before
                 if dont_deliver_before
-                else "",
-                '<stringproperty name="linked_demand" value="%s"/>'
-                % j["xx_linked_sale_order_id"][1]
-                if j.get("xx_linked_sale_order_id", None)
                 else "",
             )
 
