@@ -863,11 +863,14 @@ class exporter(object):
                     # All routing steps are collapsed in a single operation.
                     #
                     if subcontractor:
-                        yield '<operation name=%s size_multiple="1" category="subcontractor" subcategory=%s duration="P%dD" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
+                        # Original code:
+                        # yield '<operation name=%s size_multiple="1" category="subcontractor" subcategory=%s duration="P%dD" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
+                        # Epower: hard code the subcontracting lead time to 1 second
+                        yield '<operation name=%s size_multiple="1" category="subcontractor" subcategory=%s duration="PT1S" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
                             quoteattr(operation),
                             quoteattr(subcontractor["name"]),
                             subcontractor.get("delay", 0),
-                            self.po_lead,
+                            # self.po_lead,    # Original lead time
                             subcontractor.get("priority", 1),
                             subcontractor.get("size_minimum", 0),
                             quoteattr(product_buf["name"]),
