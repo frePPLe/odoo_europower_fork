@@ -1514,24 +1514,24 @@ class exporter(object):
                     i["bom_id"][0],
                 )
                 try:
-                    # startdate = (
-                    #     (
-                    #         i["date_start"]
-                    #         .astimezone(timezone(self.timezone))
-                    #         .strftime(self.timeformat)
-                    #     )
-                    #     if i["date_start"]
-                    #     else (
-                    #         i["date_planned_start"]
-                    #         .astimezone(timezone(self.timezone))
-                    #         .strftime(self.timeformat)
-                    #     )
-                    # )
-                    enddate = (
-                        i["date_planned_finished"]
-                        .astimezone(timezone(self.timezone))
-                        .strftime(self.timeformat)
+                    startdate = (
+                        (
+                            i["date_start"]
+                            .astimezone(timezone(self.timezone))
+                            .strftime(self.timeformat)
+                        )
+                        if i["date_start"]
+                        else (
+                            i["date_planned_start"]
+                            .astimezone(timezone(self.timezone))
+                            .strftime(self.timeformat)
+                        )
                     )
+                    # enddate = (
+                    #     i["date_planned_finished"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
                 except Exception:
                     continue
                 if not location or operation not in self.operations:
@@ -1550,23 +1550,23 @@ class exporter(object):
                     / factor
                 )
                 # Default connector computes end date from the start date.
-                # yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
-                #     quoteattr(i["name"]),
-                #     startdate,
-                #     qty,
-                #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
-                #     quoteattr(operation),
-                # )
-                # Epower connector computes the start date from the end date.
-                yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
                     quoteattr(i["name"]),
-                    enddate,
+                    startdate,
                     qty,
                     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
                     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
+                # Epower connector computes the start date from the end date.
+                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
+                #     quoteattr(i["name"]),
+                #     enddate,
+                #     qty,
+                #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                #     quoteattr(operation),
+                # )
                 for mv in (
                     self.env["stock.move"]
                     .browse(i["move_raw_ids"])
