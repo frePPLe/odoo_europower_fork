@@ -48,26 +48,26 @@ class importer(object):
         proc_order = self.env["purchase.order"]
         proc_orderline = self.env["purchase.order.line"]
         mfg_order = self.env["mrp.production"]
-        if self.mode == 1:
-            # Cancel previous draft purchase quotations
-            m = self.env["purchase.order"]
-            recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
-            recs.write({"state": "cancel"})
-            recs.unlink()
-            msg.append("Removed %s old draft purchase orders" % len(recs))
+        # if self.mode == 1:
+        #     # Cancel previous draft purchase quotations
+        #     m = self.env["purchase.order"]
+        #     recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
+        #     recs.write({"state": "cancel"})
+        #     recs.unlink()
+        #     msg.append("Removed %s old draft purchase orders" % len(recs))
 
-            # Cancel previous draft manufacturing orders
-            recs = mfg_order.search(
-                [
-                    "|",
-                    ("state", "=", "draft"),
-                    ("state", "=", "cancel"),
-                    ("origin", "=", "frePPLe"),
-                ]
-            )
-            recs.write({"state": "cancel"})
-            recs.unlink()
-            msg.append("Removed %s old draft manufacturing orders" % len(recs))
+        #     # Cancel previous draft manufacturing orders
+        #     recs = mfg_order.search(
+        #         [
+        #             "|",
+        #             ("state", "=", "draft"),
+        #             ("state", "=", "cancel"),
+        #             ("origin", "=", "frePPLe"),
+        #         ]
+        #     )
+        #     recs.write({"state": "cancel"})
+        #     recs.unlink()
+        #     msg.append("Removed %s old draft manufacturing orders" % len(recs))
 
         # Parsing the XML data file
         countproc = 0
