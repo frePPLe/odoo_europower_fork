@@ -122,8 +122,8 @@ class exporter(object):
                 yield i
             for i in self.export_manufacturingorders():
                 yield i
-            for i in self.export_orderpoints():
-                yield i
+            # for i in self.export_orderpoints():
+            #     yield i
             for i in self.export_onhand():
                 yield i
 
