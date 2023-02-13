@@ -92,6 +92,17 @@ class importer(object):
                     if ordertype == "PO":
                         # Create purchase order
                         supplier_id = int(elem.get("supplier").split(" ", 1)[0])
+                        quantity = elem.get("quantity")
+                        date_planned = elem.get("end")
+                        if date_planned:
+                            date_planned = datetime.strptime(
+                                date_planned, "%Y-%m-%d %H:%M:%S"
+                            )
+                        date_ordered = elem.get("start")
+                        if date_ordered:
+                            date_ordered = datetime.strptime(
+                                date_ordered, "%Y-%m-%d %H:%M:%S"
+                            )
                         if supplier_id not in supplier_reference:
                             po = proc_order.create(
                                 {
@@ -105,8 +116,28 @@ class importer(object):
                                     "origin": "frePPLe",
                                 }
                             )
-                            supplier_reference[supplier_id] = po.id
+                            supplier_reference[supplier_id] = {
+                                "id": po.id,
+                                "min_planned": date_planned,
+                                "min_ordered": date_ordered,
+                                "po": po,
+                            }
                             po.onchange_partner_id()
+                        else:
+                            if (
+                                date_planned
+                                < supplier_reference[supplier_id]["min_planned"]
+                            ):
+                                supplier_reference[supplier_id][
+                                    "min_planned"
+                                ] = date_planned
+                            if (
+                                date_ordered
+                                < supplier_reference[supplier_id]["min_ordered"]
+                            ):
+                                supplier_reference[supplier_id][
+                                    "min_ordered"
+                                ] = date_ordered
 
                         quantity = elem.get("quantity")
                         date_planned = (
@@ -137,7 +168,7 @@ class importer(object):
                                 price_unit = product_supplierinfo.price
                             po_line = proc_orderline.create(
                                 {
-                                    "order_id": supplier_reference[supplier_id],
+                                    "order_id": supplier_reference[supplier_id]["id"],
                                     "product_id": int(item_id),
                                     "product_qty": quantity,
                                     "product_uom": int(uom_id),
@@ -153,7 +184,7 @@ class importer(object):
                             po_line = product_supplier_dict[(item_id, supplier_id)]
                             po_line.date_planned = min(
                                 po_line.date_planned,
-                                datetime.strptime(date_planned, "%Y-%m-%d %H:%M:%S"),
+                                date_planned,
                             )
                             po_line.product_qty = po_line.product_qty + float(quantity)
                         countproc += 1
@@ -263,6 +294,13 @@ class importer(object):
             elif event == "start" and elem.tag in ["operationplans", "demands"]:
                 # Remember the root element
                 root = elem
+
+        # Update PO RFQ order_deadline and receipt date
+        for sup in supplier_reference.values():
+            if sup["min_planned"]:
+                sup["po"].date_planned = sup["min_planned"]
+            if sup["min_ordered"]:
+                sup["po"].date_order = sup["min_ordered"]
 
         # Be polite, and reply to the post
         msg.append("Processed %s uploaded procurement orders" % countproc)
