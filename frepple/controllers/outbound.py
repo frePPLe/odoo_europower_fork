@@ -1606,13 +1606,13 @@ class exporter(object):
                             "product_id",
                             "product_qty",
                             "product_uom",
-                            "has_move_lines",
-                            "date",
-                            "reference",
-                            "move_line_ids",
-                            "workorder_id",
-                            "should_consume_qty",
-                            "reserved_availability",
+                            # "has_move_lines",
+                            # "date",
+                            # "reference",
+                            # "move_line_ids",
+                            # "workorder_id",
+                            # "should_consume_qty",
+                            # "reserved_availability",
                         ]
                     )
                 ):
