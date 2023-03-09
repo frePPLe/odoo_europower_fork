@@ -1527,6 +1527,7 @@ class exporter(object):
             "location_dest_id",
             "product_id",
             "move_raw_ids",
+            "xx_operator_qty",
         ]
         for i in recs.read(fields):
             if i["bom_id"]:
@@ -1581,12 +1582,13 @@ class exporter(object):
                     / factor
                 )
                 # Default connector computes end date from the start date.
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><operation name=%s/><flowplans>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
                     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
                     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                    quoteattr(str(i["xx_operator_qty"] or 1.0)),  # Epower custom field
                     quoteattr(operation),
                 )
                 # Epower connector computes the start date from the end date.

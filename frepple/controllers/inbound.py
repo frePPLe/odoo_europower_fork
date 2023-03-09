@@ -223,6 +223,7 @@ class importer(object):
                                 # TODO no place to store the criticality
                                 # elem.get('criticality'),
                                 "origin": "frePPLe",
+                                "xx_operator_qty": elem.get("xx_operator_qty"),
                             })
                         try:
                             mo._onchange_workorder_ids()
