@@ -778,6 +778,7 @@ class exporter(object):
             "workcenter_id",
             "sequence",
             "xx_total_time_cycle",  # Custom epower field
+            "xx_operation_type_id",  # Custom epower field
             "skill",
             "search_mode",
         ]
@@ -805,6 +806,9 @@ class exporter(object):
                             i["skill"][1] if i["skill"] else None,
                             i["search_mode"],
                             i["id"],
+                            i["xx_operation_type_id"][1]
+                            if i["xx_operation_type_id"]
+                            else None,
                         ]
                     )
             else:
@@ -817,6 +821,9 @@ class exporter(object):
                         i["skill"][1] if i["skill"] else None,
                         i["search_mode"],
                         i["id"],
+                        i["xx_operation_type_id"][1]
+                        if i["xx_operation_type_id"]
+                        else None,
                     ]
                 ]
 
@@ -1048,11 +1055,12 @@ class exporter(object):
                     for step in steplist:
                         counter = counter + 1
                         suboperation = step[3]
-                        yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
+                        yield "<suboperation>" '<operation name=%s category=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
                             quoteattr(
                                 "%s - %s - %s"
                                 % (operation, suboperation, (counter * 100))
                             ),
+                            quoteattr(step[7] or ""),
                             counter * 10,
                             self.convert_float_time(step[1] / 1440.0),
                             quoteattr(location),
