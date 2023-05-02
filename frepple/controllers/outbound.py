@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import json
 import logging
 import pytz
 
@@ -83,6 +84,10 @@ class exporter(object):
         # updated from the data are also marked as from originating from odoo.
         yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
         yield '<plan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" source="odoo_%s">\n' % self.mode
+
+        # Epower: Synchronize operation efficiencies
+        for i in self.export_operation_efficiencies():
+            yield i
 
         # Main content.
         # The order of the entities is important. First one needs to create the
@@ -1732,3 +1737,36 @@ class exporter(object):
                 quoteattr(key[1]),
             )
         yield "</buffers>\n"
+
+    def export_operation_efficiencies(self):
+        """
+        Synchronize the custom odoo xx.mrp.operation.efficiency with frepple.
+        Mapped fields:
+            - product_category_id: Many2one product.category
+            - operation_type_id: Many2one xx.mrp.operation.type
+            - size: Integer
+            - relative_duration: Float
+        """
+        m = self.env["xx.mrp.operation.efficiency"]
+        op_eff = []
+        recs = m.search([])
+        if recs:
+            for rec in recs.read(
+                [
+                    "product_category_id",
+                    "operation_type_id",
+                    "size",
+                    "relative_duration",
+                ]
+            ):
+                op_eff.append(
+                    {
+                        "size": rec["size"],
+                        "itemcat": rec["product_category_id"][1],
+                        "opertype": rec["operation_type_id"][1],
+                        "efficiency": rec["relative_duration"],
+                    }
+                )
+        yield '<stringproperty name="operation_efficiencies" value=%s/>\n' % quoteattr(
+            json.dumps(op_eff)
+        )
