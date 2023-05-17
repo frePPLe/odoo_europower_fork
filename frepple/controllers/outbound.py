@@ -1541,7 +1541,6 @@ class exporter(object):
             "product_id",
             "move_raw_ids",
             "xx_operator_qty",
-            "xx_duration_open",
             "workorder_ids",
         ]
         wo_model = self.env["mrp.workorder"]
