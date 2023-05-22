@@ -1768,23 +1768,22 @@ class exporter(object):
         m = self.env["xx.mrp.operation.efficiency"]
         op_eff = []
         recs = m.search([])
-        if recs:
-            for rec in recs.read(
-                [
-                    "product_category_id",
-                    "operation_type_id",
-                    "size",
-                    "relative_duration",
-                ]
-            ):
-                op_eff.append(
-                    {
-                        "size": rec["size"],
-                        "itemcat": rec["product_category_id"][1],
-                        "opertype": rec["operation_type_id"][1],
-                        "efficiency": rec["relative_duration"],
-                    }
-                )
+        for rec in recs.read(
+            [
+                "product_category_id",
+                "operation_type_id",
+                "size",
+                "relative_duration",
+            ]
+        ):
+            op_eff.append(
+                {
+                    "size": rec["size"],
+                    "itemcat": rec["product_category_id"][1],
+                    "opertype": rec["operation_type_id"][1],
+                    "efficiency": rec["relative_duration"],
+                }
+            )
         yield '<stringproperty name="operation_efficiencies" value=%s/>\n' % quoteattr(
             json.dumps(op_eff)
         )
