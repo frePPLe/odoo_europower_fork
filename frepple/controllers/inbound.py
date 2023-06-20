@@ -207,8 +207,29 @@ class importer(object):
                                       is_dst=None)
                             .astimezone(pytz.utc)
                         ).strftime("%Y-%m-%d %H:%M:%S")
-
-                        mo = mfg_order.create({
+                        logger.error(
+                            "creating MO %s "
+                            % {
+                                "product_qty": elem.get("quantity"),
+                                "date_planned_start": date_planned_start,
+                                "date_planned_finished": date_planned_finished,
+                                "product_id": int(item_id),
+                                "company_id": self.company.id,
+                                "product_uom_id": int(uom_id),
+                                "location_src_id": int(elem.get("location_id")),
+                                "location_dest_id": int(elem.get("location_id")),
+                                "bom_id": bom_id.id,
+                                "picking_type_id": bom_id.picking_type_id.id
+                                or picking_type_id,
+                                "qty_producing": 0.00,
+                                # TODO no place to store the criticality
+                                # elem.get('criticality'),
+                                "origin": "frePPLe",
+                                "xx_operator_qty": elem.get("xx_operator_qty"),
+                            }
+                        )
+                        mo = mfg_order.create(
+                            {
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": date_planned_start,
                                 "date_planned_finished": date_planned_finished,
@@ -227,41 +248,46 @@ class importer(object):
                             })
                         try:
                             mo._onchange_workorder_ids()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error(
+                                "error creating _onchange_workorder_ids %s " % e
+                            )
                         # try:
                         #     mo._onchange_bom_id()
                         # except Exception:
                         #     pass
                         try:
                             mo.onchange_picking_type()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error onchange_picking_type %s " % e)
                         try:
                             mo._onchange_move_raw()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error _onchange_move_raw %s " % e)
                         try:
                             mo._create_update_move_finished()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error _create_update_move_finished %s " % e)
                         try:
                             mo.action_confirm()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error action_confirm %s " % e)
                         try:
                             mo.button_plan()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error button_plan %s " % e)
                         try:
                             mo.action_assign()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error("error action_assign %s " % e)
                         try:
                             mo.picking_ids.action_confirm()
                             mo.picking_ids.action_assign()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error(
+                                "error picking_ids.action_confirm  picking_ids.action_assign %s "
+                                % e
+                            )
 
                         countmfg += 1
                 except Exception as e:
