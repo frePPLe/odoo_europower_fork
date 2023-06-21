@@ -84,7 +84,9 @@ class importer(object):
         # into one PO with sum of quantities and min date
         product_supplier_dict = {}
 
+        logger.warning("start parsing")
         for event, elem in iterparse(self.datafile, events=("start", "end")):
+            logger.warning("%s %s" % (event, elem.tag))
             if event == "end" and elem.tag == "operationplan":
                 uom_id, item_id = elem.get("item_id").split(",")
                 try:
