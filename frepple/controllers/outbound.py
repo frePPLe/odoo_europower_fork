@@ -753,7 +753,6 @@ class exporter(object):
         """
         yield "<!-- bills of material -->\n"
         yield "<operations>\n"
-        self.operations = set()
 
         # dictionary used to divide the confirmed MO quantities
         # key is tuple (operation name, produced item)
@@ -892,7 +891,6 @@ class exporter(object):
                     subcontractor.get("name", location),
                     i["id"],
                 )
-                self.operations.add(operation)
                 if (
                     not self.manage_work_orders
                     or subcontractor
@@ -1549,6 +1547,8 @@ class exporter(object):
             if i["bom_id"]:
                 # Open orders
                 location = self.map_locations.get(i["location_dest_id"][0], None)
+                if not location:
+                    continue
                 item = (
                     self.product_product[i["product_id"][0]]
                     if i["product_id"][0] in self.product_product
@@ -1581,8 +1581,6 @@ class exporter(object):
                     #     .strftime(self.timeformat)
                     # )
                 except Exception:
-                    continue
-                if not location or operation not in self.operations:
                     continue
                 factor = (
                     self.bom_producedQty[(operation, item["name"])]
