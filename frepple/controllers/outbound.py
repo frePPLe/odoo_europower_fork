@@ -1602,7 +1602,7 @@ class exporter(object):
                     xx_duration_open += max(wo["xx_duration_open"] or 0, 0)
 
                 # Default connector computes end date from the start date.
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/><operation name=%s/><flowplans>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/><operation name=%s><location name="%s"/></operation><flowplans>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
@@ -1611,6 +1611,7 @@ class exporter(object):
                     quoteattr(str(i["xx_operator_qty"] or 1.0)),  # Epower custom field
                     xx_duration_open,  # Epower custom field
                     quoteattr(operation),
+                    quoteattr(location),
                 )
                 # Epower connector computes the start date from the end date.
                 # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
