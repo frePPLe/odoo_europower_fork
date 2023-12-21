@@ -1466,7 +1466,8 @@ class exporter(object):
             "company_id",
             "partner_id",
             "state",
-            "date_order"
+            "date_order",
+            "date_approve",
         ]
 
         purchase_orders = {}
@@ -1493,7 +1494,9 @@ class exporter(object):
                         .strftime(self.timeformat)
                     )
                     end = (
-                        po_line["date_planned"].astimezone(timezone(self.timezone))
+                        po_line["date_planned"]
+                        .astimezone(timezone(self.timezone))
+                        .strftime(self.timeformat)
                     )
                 else:
                     start = (
@@ -1502,7 +1505,9 @@ class exporter(object):
                         .strftime(self.timeformat)
                     )
                     end = (
-                        po_line["date_planned"].astimezone(timezone(self.timezone))
+                        po_line["date_planned"]
+                        .astimezone(timezone(self.timezone))
+                        .strftime(self.timeformat)
                     )
                 qty = self.convert_qty_uom(
                     po_line["product_qty"] - po_line["qty_received"],
