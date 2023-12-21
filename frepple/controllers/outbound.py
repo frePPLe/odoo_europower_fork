@@ -1504,13 +1504,6 @@ class exporter(object):
                     end = (
                         po_line["date_planned"].astimezone(timezone(self.timezone))
                     )
-                start = (
-                    purchase_order["date_order"]
-                    .astimezone(timezone(self.timezone))
-                    .strftime(self.timeformat)
-                )
-                end = po_line["date_planned"].astimezone(timezone(self.timezone))
-                end = end.strftime(self.timeformat)
                 qty = self.convert_qty_uom(
                     po_line["product_qty"] - po_line["qty_received"],
                     po_line["product_uom"][0],
