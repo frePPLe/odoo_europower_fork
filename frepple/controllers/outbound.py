@@ -18,6 +18,7 @@
 import json
 import logging
 import pytz
+import math
 from enum import Enum
 
 from xml.sax.saxutils import quoteattr
@@ -1800,6 +1801,7 @@ class exporter(object):
                     "efficiency": rec["relative_duration"],
                 }
             )
-        yield '<stringproperty name="operation_efficiencies" value=%s/>\n' % quoteattr(
-            json.dumps(op_eff)
-        )
+        for page in range(math.ceil(len(op_eff)/10)):
+            yield '<stringproperty name="operation_efficiencies_%s" value=%s/>\n' % (page+1, quoteattr(
+                json.dumps(op_eff[page*10:page*10+10])
+            ))
