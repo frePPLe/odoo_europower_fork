@@ -1489,22 +1489,22 @@ class exporter(object):
             location = self.mfg_location
             if location and po_line_product and po_line["product_qty"] > po_line["qty_received"]:
                 if purchase_order == PurchaseOrderStates.RFQ:
-                    start = (
-                        purchase_order["date_order"]
-                        .astimezone(timezone(self.timezone))
-                        .strftime(self.timeformat)
-                    )
+                    # start = (
+                    #     purchase_order["date_order"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
                     end = (
                         po_line["date_planned"]
                         .astimezone(timezone(self.timezone))
                         .strftime(self.timeformat)
                     )
                 else:
-                    start = (
-                        purchase_order["date_approve"]
-                        .astimezone(timezone(self.timezone))
-                        .strftime(self.timeformat)
-                    )
+                    # start = (
+                    #     purchase_order["date_approve"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
                     end = (
                         po_line["date_planned"]
                         .astimezone(timezone(self.timezone))
@@ -1515,9 +1515,11 @@ class exporter(object):
                     po_line["product_uom"][0],
                     self.product_product[po_line["product_id"][0]]["template"],
                 )
-                yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
+                # Standard: yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
+                # Epower: don't export the start date (which can be after the end date)
+                yield '<operationplan reference=%s ordertype="PO" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
                     quoteattr("%s - %s" % (purchase_order["name"], po_line["id"])),
-                    start,
+                    # start, # Epower: don't export the start date (which can be after the end date)
                     end,
                     qty,
                     quoteattr(po_line_product["name"]),
