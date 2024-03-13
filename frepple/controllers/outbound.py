@@ -18,6 +18,8 @@
 import json
 import logging
 import pytz
+import math
+from enum import Enum
 
 from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta, date
@@ -28,6 +30,13 @@ import odoo
 
 logger = logging.getLogger(__name__)
 
+class PurchaseOrderStates(Enum):
+    RFQ = "draft"
+    RFQ_SENT = "sent"
+    TO_APPROVE = "to approve"
+    PURCHASE_ORDER = "purchase"
+    DONE = "done"
+    CANCELLED = "cancel"
 
 class exporter(object):
     def __init__(self, req, uid, database=None, company=None, mode=1, timezone=None):
@@ -1422,8 +1431,9 @@ class exporter(object):
         'PO' -> operationplan.ordertype
         'confirmed' -> operationplan.status
         """
-        m = self.env["purchase.order.line"]
-        recs = m.search(
+        purchaseOrderLine = self.env["purchase.order.line"]
+        purchaseOrder = self.env["purchase.order"]
+        all_po_lines = purchaseOrderLine.search(
             [
                 "|",
                 (
@@ -1448,63 +1458,73 @@ class exporter(object):
             "order_id",
             "state",
         ]
-        po_line = [i for i in recs.read(fields)]
+        po_lines = [i for i in all_po_lines.read(fields)]
 
         # Get all purchase orders
-        m = self.env["purchase.order"]
-        ids = [i["order_id"][0] for i in po_line]
-        fields = ["name", "company_id", "partner_id", "state", "date_order"]
-        po = {}
-        for i in m.browse(ids).read(fields):
-            po[i["id"]] = i
+        all_po_ids = [po_line["order_id"][0] for po_line in po_lines]
+        fields = [
+            "name",
+            "company_id",
+            "partner_id",
+            "state",
+            "date_order",
+            "date_approve",
+        ]
+
+        purchase_orders = {}
+        for purchase_order in purchaseOrder.browse(all_po_ids).read(fields):
+            purchase_orders[purchase_order["id"]] = purchase_order
 
         # Create purchasing operations
         yield "<!-- open purchase orders -->\n"
         yield "<operationplans>\n"
-        for i in po_line:
-            if not i["product_id"] or i["state"] == "cancel":
+        for po_line in po_lines:
+            if not po_line["product_id"] or po_line["state"] == "cancel":
                 continue
-            item = self.product_product.get(i["product_id"][0], None)
-            j = po[i["order_id"][0]]
+            po_line_product = self.product_product.get(po_line["product_id"][0], None)
+            purchase_order = purchase_orders[po_line["order_id"][0]]
             # if PO status is done, we should ignore this PO line
-            if j["state"] == "done":
+            if purchase_order["state"] == PurchaseOrderStates.DONE:
                 continue
             location = self.mfg_location
-            if location and item and i["product_qty"] > i["qty_received"]:
-                start = (
-                    j["date_order"]
-                    .astimezone(timezone(self.timezone))
-                    .strftime(self.timeformat)
-                )
-                end = i["date_planned"].astimezone(timezone(self.timezone))
-                # Epower customization
-                # weekday = end.weekday()
-                # if weekday == 3:
-                #     # PO received on thursday -> material available next monday
-                #     end += timedelta(days=4)
-                # elif weekday == 4:
-                #     # PO received on friday -> material available next tuesday
-                #     end += timedelta(days=4)
-                # elif weekday == 5:
-                #     # PO received on saturday -> material available next tuesday
-                #     end += timedelta(days=3)
-                # else:
-                #     # PO received on sunday -> material available 2 days later
-                #     end += timedelta(days=2)
-                end = end.strftime(self.timeformat)
+            if location and po_line_product and po_line["product_qty"] > po_line["qty_received"]:
+                if purchase_order == PurchaseOrderStates.RFQ:
+                    # start = (
+                    #     purchase_order["date_order"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
+                    end = (
+                        po_line["date_planned"]
+                        .astimezone(timezone(self.timezone))
+                        .strftime(self.timeformat)
+                    )
+                else:
+                    # start = (
+                    #     purchase_order["date_approve"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
+                    end = (
+                        po_line["date_planned"]
+                        .astimezone(timezone(self.timezone))
+                        .strftime(self.timeformat)
+                    )
                 qty = self.convert_qty_uom(
-                    i["product_qty"] - i["qty_received"],
-                    i["product_uom"][0],
-                    self.product_product[i["product_id"][0]]["template"],
+                    po_line["product_qty"] - po_line["qty_received"],
+                    po_line["product_uom"][0],
+                    self.product_product[po_line["product_id"][0]]["template"],
                 )
-                yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
-                    quoteattr("%s - %s" % (j["name"], i["id"])),
-                    start,
+                # Standard: yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
+                # Epower: don't export the start date (which can be after the end date)
+                yield '<operationplan reference=%s ordertype="PO" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
+                    quoteattr("%s - %s" % (purchase_order["name"], po_line["id"])),
+                    # start, # Epower: don't export the start date (which can be after the end date)
                     end,
                     qty,
-                    quoteattr(item["name"]),
+                    quoteattr(po_line_product["name"]),
                     quoteattr(location),
-                    quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
+                    quoteattr("%d %s" % (purchase_order["partner_id"][0], purchase_order["partner_id"][1])),
                 )
                 yield "</operationplan>\n"
         yield "</operationplans>\n"
@@ -1783,6 +1803,7 @@ class exporter(object):
                     "efficiency": rec["relative_duration"],
                 }
             )
-        yield '<stringproperty name="operation_efficiencies" value=%s/>\n' % quoteattr(
-            json.dumps(op_eff)
-        )
+        for page in range(math.ceil(len(op_eff)/10)):
+            yield '<stringproperty name="operation_efficiencies_%s" value=%s/>\n' % (page+1, quoteattr(
+                json.dumps(op_eff[page*10:page*10+10])
+            ))
