@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="frepple_quote_post_view_form" model="ir.ui.view">
+        <field name="name">frepple_quote.post.view.form</field>
+        <field name="model">frepple.quote</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <header>
+                    <button name="compute_quote" type="object" string="QUOTE" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <!-- Input Fields -->
+                    <group string="Input Details">
+                        <field name="product_id"/>
+                        <field name="quantity"/>
+                        <field name="warehouse_id"/>
+                        <field name="minimum_shipment"/>
+                        <field name="due_date"/>
+                        <field name="maximum_lateness"/>
+                    </group>
+
+
+                    <!-- Output Fields -->
+                    <group string="Output Details">
+                        <field name="quote"/>
+                        <field name="detailed_quote"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <odoo>
+        <record id="view_frepple_quote_kanban" model="ir.ui.view">
+            <field name="name">frepple.quote.kanban</field>
+            <field name="model">frepple.quote</field>
+            <field name="arch" type="xml">
+                <kanban>
+                    <field name="product_id"/>
+                    <field name="quote"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_global_click">
+                                <field name="product_id"/>
+                                <hr style="margin: 10px 0;"/> <!-- Horizontal divider -->
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="quote" widget="html"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+    </odoo>
+
+
+
+    <record id="frepple_quote_post_view_tree" model="ir.ui.view">
+        <field name="name">frepple_quote.post.view.tree</field>
+        <field name="model">frepple.quote</field>
+        <field name="arch" type="xml">
+            <tree string="">
+                <field name="product_id"/>
+                <field name="quantity"/>
+                <field name="quote" widget="html" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="frepple_quote_post_action" model="ir.actions.act_window">
+        <field name="name">FrePPLe Quote's</field>
+        <field name="res_model">frepple.quote</field>
+        <field name="view_mode">tree,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Make your first FrePPLe quote!
+            </p>
+        </field>
+    </record>
+
+    <menuitem
+        name="FrePPLe Quote's"
+        id="frepple_quote_post_menu_action"
+        action="frepple_quote_post_action"
+        />
+</odoo>

@@ -65,6 +65,9 @@
                    position="before">
                 <field name="frepple_write_date" optional="show"/>
             </xpath>
+            <xpath expr="//header" position="inside">
+                <button string="Quote" name="action_frepple_quote" type="object" class="oe_highlight"/>
+            </xpath>
         </field>
     </record>
 
