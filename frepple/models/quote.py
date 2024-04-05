@@ -14,8 +14,10 @@ class Quote(models.Model):
     minimum_shipment = fields.Integer(string="Minimum Shipment", required=True)
     due_date = fields.Datetime(string="Due Date", default=lambda _: datetime.today(), required=True)
     maximum_lateness = fields.Integer(string="Maximum Lateness (in days)", default=1000, required=True)
-    quote = fields.Html(string="Quote Info", readonly=True)
+    promised_delivery_date = fields.Datetime(string="Promised Delivery Date", readonly=True)
     detailed_quote = fields.Html(string="Detailed Quote Info", readonly=True)
+    last_quoted = fields.Datetime(readonly=True)
+
 
     @api.depends("quantity")
     def _compute_minimum_shipment(self):
@@ -118,7 +120,7 @@ class Quote(models.Model):
         return html
 
 
-    def fetch_quote(self):
+    def action_quote(self):
         for quote in self:
             if quote.product_id and quote.warehouse_id and quote.quantity:
 

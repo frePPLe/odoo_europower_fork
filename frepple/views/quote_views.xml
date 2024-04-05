@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <record id="frepple_quote_action" model="ir.actions.server">
+        <field name="name">Bulk Quote</field>
+        <field name="model_id" ref="model_frepple_quote"/>
+        <field name="binding_model_id" ref="model_frepple_quote"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_quote()
+        </field>
+    </record>
+
     <record id="frepple_quote_post_view_form" model="ir.ui.view">
         <field name="name">frepple_quote.post.view.form</field>
         <field name="model">frepple.quote</field>
         <field name="arch" type="xml">
             <form string="">
                 <header>
-                    <button name="compute_quote" type="object" string="QUOTE" class="oe_highlight"/>
+                    <button name="action_quote" type="object" string="QUOTE" class="oe_highlight"/>
                 </header>
                 <sheet>
                     <!-- Input Fields -->
