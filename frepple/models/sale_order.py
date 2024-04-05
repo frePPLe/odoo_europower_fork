@@ -22,14 +22,27 @@ class SaleOrder(models.Model):
             for line in sale_order.order_line:
                 if line.product_id.type == "product":
                     product_name = "[" + str(line.product_id.default_code) + "] " + str(line.product_id.name)
+                    if sale_order.picking_policy == "direct":
+                        policy = "independend"
+                    else:
+                        policy = "alltogether"
+
+                    if sale_order.commitment_date:
+                        due_date = sale_order.commitment_date.strftime("%Y-%m-%dT%H:%M:%S")
+                    else:
+                        due_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
                     request_body["demands"].append({
-                        "name": str(sale_order.name) + " - " + product_name,
+                        "name": line.id,
+                        # E-POWER - CUSTOMIZATION: e-power uses older frepple version
+                        # "owner": sale_order.id,
+                        # "policy": policy,
                         "quantity": int(line.product_uom_qty),
                         "description": "",
-                        "due": "2024-03-19T00:00:00",
+                        "due": due_date,
                         "item": {"name": product_name},
-                        "location": {"name": str(sale_order.warehouse_id.name)},
-                        "customer": {"name": str(sale_order.partner_shipping_id.name) + " " + str(sale_order.partner_shipping_id.id)},
+                        "location": {"name": sale_order.warehouse_id.id},
+                        "customer": {"name": sale_order.partner_shipping_id.id},
                         "minshipment": int(line.product_uom_qty), # Minimum shipment = Per how many do you want to ship | Zelfde als quantity in the knop
                         "maxlateness": 86400000, #  Binnen x aantal seconden moet ik het hebben | Niet Belangrijk dus staat op 1000 dagen
                         "priority": 20 # Niet belangrijk, ik neem info over van wat de quote tool doet.
