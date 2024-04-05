@@ -19,10 +19,12 @@
         "views/mrp_routing_workcenter_inherit.xml",
         "views/sale_views.xml",
         "views/product_supplierinfo_inherit.xml",
+        "views/quote_views.xml",
         "security/frepple_security.xml",
         "security/ir.model.access.csv",
     ],
     "test": [],
     "installable": True,
+    "application": True,
     "auto_install": True,
 }
