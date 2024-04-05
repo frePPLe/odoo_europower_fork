@@ -127,7 +127,7 @@ class Quote(models.Model):
                 request_body = {"demands": []}
                 product_name = "[" + str(quote.product_id.default_code) + "] " + str(quote.product_id.name)
                 request_body["demands"].append({
-                    "name": str(quote.product_id.default_code) + " - " + product_name, # Met dat default_code en product_name geen uniqueness constraint hebben nemen we beter het product ID als naamgeving.
+                    "name": quote.product_id.id,
                     "quantity": quote.quantity,
                     "description": "",
                     "due": quote.due_date.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -163,20 +163,25 @@ class Quote(models.Model):
                 frepple_response = requests.post(base_url + "quote/inquiry/", headers=headers, json=request_body)
                 response_status_code = frepple_response.status_code
 
-                # Success = 200
-                # Unauthorized = 401
-                # Everything but a 200 we put the end date to N/A
                 if response_status_code == 401:
                     raise exceptions.UserError("User is not authorized to use FrePPLe")
                 
+                elif response_status_code != 200:
+                    quote.promised_delivery_date = False
+                    quote.detailed_quote = "N/A"
+                    return
+
                 response_json = frepple_response.json()
-                quote.detailed_quote = self._generate_html(response_json)
-                try:
-                    quote.quote = "<ul><li>End Date: " + str(response_json["demands"][0]["pegging"][0]["operationplan"]["end"].split("T")[0]) + '</li></ul>'
-                
-                except Exception as e:
-                    print(e)
-                    quote.quote = 'N/A'
+                if len(response_json["demands"]) > 0 and "pegging" in response_json["demands"][0]:
+                    if response_json["demands"][0]["pegging"][0]["operationplan"]["end"] != False:
+                        quote.promised_delivery_date = datetime.strptime(str(response_json["demands"][0]["pegging"][0]["operationplan"]["end"]), "%Y-%m-%dT%H:%M:%S")
+                        quote.detailed_quote = self._generate_html(response_json)
+                    else:
+                        quote.promised_delivery_date = False
+                        quote.detailed_quote = "N/A"
+                else:
+                    quote.promised_delivery_date = False
+                    quote.detailed_quote = "N/A"
 
             else:
                 quote.detailed_quote = "Please fill in all the required fields to receive a quote"
