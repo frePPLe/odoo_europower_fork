@@ -65,6 +65,13 @@
                    position="before">
                 <field name="frepple_write_date" optional="show"/>
             </xpath>
+            <!-- E-POWER CUSTOMIZATION -->
+            <!-- <xpath expr="//div[field[@name='commitment_date']]" position="inside">
+                <button string="Quote" name="action_frepple_quote" type="object"
+                help="Make a FrePPLe quote for this sales order"
+                class="btn-link mb-1 px-0" icon="fa-refresh"
+                confirm="This will send a quote request to FrePPLe."/>
+            </xpath> -->
             <xpath expr="//header" position="inside">
                 <button string="Quote" name="action_frepple_quote" type="object" class="oe_highlight"/>
             </xpath>
