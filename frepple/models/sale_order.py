@@ -71,12 +71,13 @@ class SaleOrder(models.Model):
                 'Authorization': 'Bearer ' + str(webtoken),
                 'Content-Type': 'application/json'
             }
+            # E-POWER Customization
+            #action = "quote"
+            action = "inquiry"
             
 
-            frepple_response = requests.post(base_url + "quote/inquiry/", headers=headers, json=request_body)
+            frepple_response = requests.post(base_url + "quote/" + str(action) + "/", headers=headers, json=request_body)
             response_status_code = frepple_response.status_code
-            # Success = 200
-            # Unauthorized = 401
             if response_status_code == 401:
                 raise exceptions.UserError("User is not authorized to use FrePPLe")
 
