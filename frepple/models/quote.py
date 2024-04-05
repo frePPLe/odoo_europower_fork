@@ -186,3 +186,5 @@ class Quote(models.Model):
             else:
                 quote.detailed_quote = "Please fill in all the required fields to receive a quote"
                 quote.quote = "Please fill in all the required fields to receive a quote"
+
+            quote.last_quoted = datetime.now()
