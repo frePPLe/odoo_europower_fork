@@ -93,10 +93,14 @@ class SaleOrder(models.Model):
             for demand in response_json["demands"]:
                 product_name = demand["item"]["name"]
                 try:
-                    end_date = datetime.datetime.strptime(demand["pegging"][0]["operationplan"]["end"].split("T")[0], "%Y-%m-%d")
-                    if furthest_end_date is None or end_date > furthest_end_date:
-                        furthest_end_date = end_date
-                    end_date = end_date.strftime("%Y-%m-%d")
+                    end_date_object = datetime.datetime.strptime(demand["pegging"][0]["operationplan"]["end"].split("T")[0], "%Y-%m-%d")
+                    if furthest_end_date is None or end_date_object > furthest_end_date:
+                        furthest_end_date = end_date_object
+                    end_date = end_date_object.strftime("%Y-%m-%d")
+                    sale_order_line = sale_order.env["sale.order.line"].search([("id", "=", int(demand["name"]))])
+                    sale_order_line.write({
+                        "sale_delivery_date": end_date_object
+                    })
                 except Exception as e:
                     has_na = True
                     end_date = "N/A"
@@ -110,11 +114,12 @@ class SaleOrder(models.Model):
             # -----[ UPDATE THE DELIVERY DATE ]-----
             
             # E-POWER CUSTOMIZATION
-            # if furthest_end_date and sale_order.commitment_date != furthest_end_date:
-            #     sale_order.commitment_date = furthest_end_date
+            # if furthest_end_date and sale_order.expected_date != furthest_end_date and not has_na:
+            #     sale_order.expected_date = furthest_end_date
 
             if furthest_end_date and sale_order.xx_requested_delivery_date != furthest_end_date and not has_na:
                 sale_order.xx_requested_delivery_date = furthest_end_date
+
 
     @api.depends('order_line.frepple_write_date')
     def _compute_frepple_write_date(self):
