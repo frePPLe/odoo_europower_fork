@@ -76,7 +76,7 @@ class SaleOrder(models.Model):
             action = "inquiry"
             
 
-            frepple_response = requests.post(base_url + "quote/" + str(action) + "/", headers=headers, json=request_body)
+            frepple_response = requests.post(base_url + "/quote/" + str(action) + "/", headers=headers, json=request_body)
             response_status_code = frepple_response.status_code
             if response_status_code == 401:
                 raise exceptions.UserError("User is not authorized to use FrePPLe")
@@ -97,11 +97,14 @@ class SaleOrder(models.Model):
                     if furthest_end_date is None or end_date_object > furthest_end_date:
                         furthest_end_date = end_date_object
                     end_date = end_date_object.strftime("%Y-%m-%d")
-                    sale_order_line = sale_order.env["sale.order.line"].search([("id", "=", int(demand["name"]))])
-                    sale_order_line.write({
-                        "sale_delivery_date": end_date_object
-                    })
+
+                    # E-POWER CUSTOMIZATION
+                    # sale_order_line = sale_order.env["sale.order.line"].search([("id", "=", int(demand["name"]))])
+                    # sale_order_line.write({
+                    #     "sale_delivery_date": end_date_object
+                    # })
                 except Exception as e:
+                    _logger.exception("An error occurred: %s", e)
                     has_na = True
                     end_date = "N/A"
 

@@ -160,7 +160,8 @@ class Quote(models.Model):
                     'Authorization': 'Bearer ' + str(webtoken),
                     'Content-Type': 'application/json'
                 }
-                frepple_response = requests.post(base_url + "quote/inquiry/", headers=headers, json=request_body)
+                    
+                frepple_response = requests.post(base_url + "/quote/inquiry/", headers=headers, json=request_body)
                 response_status_code = frepple_response.status_code
 
                 if response_status_code == 401:
