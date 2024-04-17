@@ -22,10 +22,12 @@ class SaleOrder(models.Model):
             for line in sale_order.order_line:
                 if line.product_id.type == "product":
                     product_name = "[" + str(line.product_id.default_code) + "] " + str(line.product_id.name)
-                    if sale_order.picking_policy == "direct":
-                        policy = "independend"
-                    else:
-                        policy = "alltogether"
+                    
+                    # E-POWER CUSTOMIZATION
+                    # if sale_order.picking_policy == "direct":
+                    #     policy = "independend"
+                    # else:
+                    #     policy = "alltogether"
 
                     if sale_order.commitment_date:
                         due_date = sale_order.commitment_date.strftime("%Y-%m-%dT%H:%M:%S")
