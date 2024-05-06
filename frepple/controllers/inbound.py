@@ -162,6 +162,8 @@ class importer(object):
                                         product.product_tmpl_id.id,
                                     ),
                                     ("min_qty", "<=", quantity),
+                                    ("date_end", ">=", datetime.now()),
+                                    ("date_start", "<=", datetime.now())
                                 ],
                                 limit=1,
                                 order="min_qty desc",
