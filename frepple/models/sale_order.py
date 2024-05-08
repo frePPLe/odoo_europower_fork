@@ -43,8 +43,8 @@ class SaleOrder(models.Model):
                         "description": "",
                         "due": due_date,
                         "item": {"name": product_name},
-                        "location": {"name": sale_order.warehouse_id.id},
-                        "customer": {"name": sale_order.partner_shipping_id.id},
+                        "location": {"name": sale_order.warehouse_id.name},
+                        "customer": {"name": sale_order.partner_shipping_id.name},
                         "minshipment": int(line.product_uom_qty), # Minimum shipment = Per how many do you want to ship | Zelfde als quantity in the knop
                         "maxlateness": 86400000, #  Binnen x aantal seconden moet ik het hebben | Niet Belangrijk dus staat op 1000 dagen
                         "priority": 20 # Niet belangrijk, ik neem info over van wat de quote tool doet.
