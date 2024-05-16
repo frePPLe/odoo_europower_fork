@@ -1642,6 +1642,7 @@ class exporter(object):
                 #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                 #     quoteattr(operation),
                 # )
+                flowplans = {}
                 for mv in (
                     self.env["stock.move"]
                     .browse(i["move_raw_ids"])
@@ -1665,17 +1666,21 @@ class exporter(object):
                         if mv["product_id"][0] in self.product_product
                         else None
                     )
-                    if not item:
-                        continue
-                    qty = self.convert_qty_uom(
-                        mv["product_qty"],
-                        mv["product_uom"][0],
-                        self.product_product[mv["product_id"][0]]["template"],
-                    )
-                    yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
-                        -qty,
-                        quoteattr(item["name"]),
-                    )
+                    if item:
+                        qty = self.convert_qty_uom(
+                            mv["product_qty"],
+                            mv["product_uom"][0],
+                            self.product_product[mv["product_id"][0]]["template"],
+                        )
+                        if item["name"] in flowplans:
+                            flowplans[item["name"]] += qty
+                        else:
+                            flowplans[item["name"]] = qty
+                    for comp, qty in flowplans.items():
+                        yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
+                            -qty,
+                            quoteattr(comp),
+                        )
                 yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
