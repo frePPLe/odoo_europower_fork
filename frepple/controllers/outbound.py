@@ -1676,11 +1676,11 @@ class exporter(object):
                             flowplans[item["name"]] += qty
                         else:
                             flowplans[item["name"]] = qty
-                    for comp, qty in flowplans.items():
-                        yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
-                            -qty,
-                            quoteattr(comp),
-                        )
+                for comp, qty in flowplans.items():
+                    yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
+                        -qty,
+                        quoteattr(comp),
+                    )
                 yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
