@@ -15,11 +15,24 @@ logger = logging.getLogger(__name__)
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    frepple_write_date = fields.Datetime(
+        string='Write Date (frePPLe)', compute='_compute_frepple_write_date',
+        store=True
+    )
+
     # This field is used to hide/display the quote button
     # in the "Other info" tab of the sales order
     _without_quote = fields.Boolean(
         compute="_compute_without_quote", store=False, default=False
     )
+
+    @api.depends('order_line.frepple_write_date')
+    def _compute_frepple_write_date(self):
+        for order in self:
+            order.frepple_write_date = max(
+                order.order_line.filtered(
+                    lambda l: l.frepple_write_date
+                ).mapped('frepple_write_date'), default=False)
 
     def _compute_without_quote(self):
         groups = self.env["res.groups"].search([("name", "=", "frePPLe quoting user")])
@@ -238,3 +251,7 @@ class SaleOrder(models.Model):
                     "Warning: FrePPLe was unable to plan %sthe sales order line%s"
                     % (("", "") if len(sale_order.order_line) == 1 else ("all ", "s"))
                 )
+
+class SaleOrderLine(models.Model):
+    _inherit = 'sale.order.line'
+    frepple_write_date = fields.Datetime(string='Write Date (frePPLe)')
