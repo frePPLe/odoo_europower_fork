@@ -283,8 +283,8 @@ class Quote(models.Model):
                 }
 
                 # Choose between quote or inquiry.
-                action = "quote"
-                # action = "inquiry"
+                # action = "quote"
+                action = "inquiry"
 
                 scenario_url = base_url[:-1].rsplit("/", 1)
                 is_scenario = "scenario" in scenario_url[-1].lower()
