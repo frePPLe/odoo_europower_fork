@@ -1903,6 +1903,8 @@ class exporter(object):
                 "product_uom",
                 "order_id",
                 "move_ids",
+                "xx_sale_delivery_date",
+                "xx_do_not_deliver_before"
             ],
         )
 
@@ -1919,6 +1921,9 @@ class exporter(object):
                     "date_order",
                     "picking_policy",
                     "warehouse_id",
+                    "xx_requested_delivery_date",
+                    "xx_priority",
+                    "xx_linked_sale_order_id"
                 ],
             )
         }
@@ -1978,10 +1983,37 @@ class exporter(object):
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
-            due = self.formatDateTime(
-                j.get("commitment_date", False) or j["date_order"]
-            )
+            # due = self.formatDateTime(
+            #     j.get("commitment_date", False) or j["date_order"]
+            # )
+            due = j.get("xx_requested_delivery_date", False) or j["date_order"]
+
             priority = 1  # We give all customer orders the same default priority
+            xx_sale_delivery_date = (
+                i.get("xx_sale_delivery_date", False)
+                or j.get("commitment_date", False)
+                or j.get("xx_requested_delivery_date", False)
+                or j["date_order"]
+            )
+            if xx_sale_delivery_date:
+                xx_sale_delivery_date = (
+                    datetime.combine(xx_sale_delivery_date, datetime.min.time())
+                    .astimezone(timezone(self.timezone))
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .strftime(self.timeformat)
+                )
+            # Epower: dont_deliver_before
+            dont_deliver_before = i.get("xx_do_not_deliver_before", False)
+            if dont_deliver_before:
+                if type(dont_deliver_before) is date:
+                    dont_deliver_before = datetime.combine(
+                        dont_deliver_before, datetime.min.time()
+                    )
+                dont_deliver_before = (
+                    dont_deliver_before.astimezone(timezone(self.timezone))
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .strftime(self.timeformat)
+                )
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
@@ -1992,7 +2024,8 @@ class exporter(object):
                 for x in i["move_ids"]
             ):
                 state = "done"
-            if state in ("draft", "sent"):
+            if state in ("draft", "waiting_for_approval", "sent"):
+                priority = 10
                 # status = "inquiry"  # Inquiries don't reserve capacity and materials
                 status = "quote"  # Quotes do reserve capacity and materials
                 qty = self.convert_qty_uom(
@@ -2001,6 +2034,7 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
+                priority = int(j.get("xx_priority", 10))
                 if i["move_ids"] and any(
                     [mv_id in stock_moves_dict for mv_id in i["move_ids"]]
                 ):
@@ -2026,6 +2060,10 @@ class exporter(object):
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
                                 # Disable the next line in frepple < 6.25
                                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+
+                                '<booleanproperty name="exported_to_odoo" value="%s"/>'
+                                '<dateproperty name="odoo_delivery_date" value="%s"/>'
+                                '%s'
                                 "</demand>\n"
                             ) % (
                                 quoteattr(sol_name),
@@ -2049,6 +2087,12 @@ class exporter(object):
                                     if j["picking_policy"] == "one"
                                     else "independent"
                                 ),
+                                "true" if i.get("xx_sale_delivery_date", False) else "false",
+                                xx_sale_delivery_date,
+                                '<dateproperty name="dont_deliver_before" value="%s"/>'
+                                % dont_deliver_before
+                                if dont_deliver_before
+                                else "",
                             )
                     # We are done with this line, move to the next one
                     continue
@@ -2069,6 +2113,7 @@ class exporter(object):
                             self.product_product[i["product_id"][0]]["template"],
                         )
             elif state == "done":
+                priority = 0
                 status = "closed"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
@@ -2076,6 +2121,7 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "cancel":
+                priority = 0
                 status = "canceled"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
@@ -2089,7 +2135,11 @@ class exporter(object):
             yield (
                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
                 # Enable only in frepple >= 6.25
-                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+
+                '<booleanproperty name="exported_to_odoo" value="%s"/>'
+                '<dateproperty name="odoo_delivery_date" value="%s"/>'
+                '%s'
                 "</demand>\n"
             ) % (
                 quoteattr(name),
@@ -2103,8 +2153,14 @@ class exporter(object):
                 quoteattr(customer),
                 quoteattr(location),
                 # Enable only in frepple >= 6.25
-                # quoteattr(i["order_id"][1]),
-                # "alltogether" if j["picking_policy"] == "one" else "independent",
+                quoteattr(i["order_id"][1]),
+                "alltogether" if j["picking_policy"] == "one" else "independent",
+                "true" if i.get("xx_sale_delivery_date", False) else "false",
+                xx_sale_delivery_date,
+                '<dateproperty name="dont_deliver_before" value="%s"/>'
+                % dont_deliver_before
+                if dont_deliver_before
+                else "",
             )
         yield "</demands>\n"
 
