@@ -1995,25 +1995,12 @@ class exporter(object):
                 or j.get("xx_requested_delivery_date", False)
                 or j["date_order"]
             )
-            if xx_sale_delivery_date:
-                xx_sale_delivery_date = (
-                    datetime.combine(xx_sale_delivery_date, datetime.min.time())
-                    .astimezone(timezone(self.timezone))
-                    .replace(hour=0, minute=0, second=0, microsecond=0)
-                    .strftime(self.timeformat)
-                )
+
+            xx_sale_delivery_date = xx_sale_delivery_date.strftime("%Y-%m-%dT00:00:00") if xx_sale_delivery_date else "2020-01-01T00:00:00"
+
             # Epower: dont_deliver_before
             dont_deliver_before = i.get("xx_do_not_deliver_before", False)
-            if dont_deliver_before:
-                if type(dont_deliver_before) is date:
-                    dont_deliver_before = datetime.combine(
-                        dont_deliver_before, datetime.min.time()
-                    )
-                dont_deliver_before = (
-                    dont_deliver_before.astimezone(timezone(self.timezone))
-                    .replace(hour=0, minute=0, second=0, microsecond=0)
-                    .strftime(self.timeformat)
-                )
+            dont_deliver_before = dont_deliver_before.strftime("%Y-%m-%dT00:00:00") if dont_deliver_before else "2020-01-01T00:00:00"
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
