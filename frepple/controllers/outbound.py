@@ -2013,8 +2013,8 @@ class exporter(object):
                 state = "done"
             if state in ("draft", "waiting_for_approval", "sent"):
                 priority = 10
-                # status = "inquiry"  # Inquiries don't reserve capacity and materials
-                status = "quote"  # Quotes do reserve capacity and materials
+                status = "inquiry"  # Inquiries don't reserve capacity and materials
+                # status = "quote"  # Quotes do reserve capacity and materials
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
                     i["product_uom"],
