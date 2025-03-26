@@ -27,7 +27,7 @@ import logging
 import pytz
 import xmlrpc.client
 from xml.sax.saxutils import quoteattr
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from pytz import timezone
 import ssl
 
@@ -1986,7 +1986,7 @@ class exporter(object):
             # due = self.formatDateTime(
             #     j.get("commitment_date", False) or j["date_order"]
             # )
-            due = j.get("xx_requested_delivery_date", False) or j["date_order"]
+            due = j.get("xx_requested_delivery_date", False) or j["date_order"] or "2020-01-01T00:00:00"
 
             priority = 1  # We give all customer orders the same default priority
             xx_sale_delivery_date = (
@@ -2041,7 +2041,7 @@ class exporter(object):
                                 if self.respect_reservations
                                 else 0
                             )
-                            due = self.formatDateTime(sm["date"] or j["date_order"])
+                            due = self.formatDateTime(sm["date"] or j["date_order"] or "2020-01-01T00:00:00")
 
                             yield (
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
