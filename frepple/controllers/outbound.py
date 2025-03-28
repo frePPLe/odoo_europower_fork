@@ -27,7 +27,7 @@ import logging
 import pytz
 import xmlrpc.client
 from xml.sax.saxutils import quoteattr
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pytz import timezone
 import ssl
 
@@ -1987,6 +1987,8 @@ class exporter(object):
             #     j.get("commitment_date", False) or j["date_order"]
             # )
             due = j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
+            if isinstance(due, date):
+                due = datetime.combine(due, datetime.min.time())
 
             if not isinstance(due, datetime):
                 print(due)
@@ -2000,6 +2002,8 @@ class exporter(object):
                 or j.get("xx_requested_delivery_date", False)
                 or j["date_order"]
             )
+            if isinstance(xx_sale_delivery_date, date):
+                xx_sale_delivery_date = datetime.combine(xx_sale_delivery_date, datetime.min.time())
 
             if not isinstance(xx_sale_delivery_date, datetime):
                 xx_sale_delivery_date = datetime.fromisoformat(xx_sale_delivery_date)
@@ -2009,6 +2013,8 @@ class exporter(object):
             # Epower: dont_deliver_before
             dont_deliver_before = i.get("xx_do_not_deliver_before", False)
 
+            if isinstance(dont_deliver_before, date):
+                dont_deliver_before = datetime.combine(dont_deliver_before, datetime.min.time())
             if not isinstance(dont_deliver_before, datetime):
                 dont_deliver_before = datetime.fromisoformat(dont_deliver_before)
 
