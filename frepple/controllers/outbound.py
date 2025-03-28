@@ -1989,6 +1989,7 @@ class exporter(object):
             due = j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
             if not isinstance(due, datetime):
+                print(due)
                 due = datetime.fromisoformat(due)
 
             due = self.formatDateTime(due)
@@ -2054,6 +2055,7 @@ class exporter(object):
                             due = sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
                             if not isinstance(due, datetime):
+                                print(due)
                                 due = datetime.fromisoformat(due)
 
                             due = self.formatDateTime(due)
