@@ -1987,7 +1987,7 @@ class exporter(object):
             #     j.get("commitment_date", False) or j["date_order"]
             # )
             due = self.formatDateTime(
-                j.get("xx_requested_delivery_date", False) or j["date_order"] or "2020-01-01T00:00:00"
+                j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
             )
 
             priority = 1  # We give all customer orders the same default priority
@@ -1998,7 +1998,6 @@ class exporter(object):
                 or j["date_order"]
             )
 
-            xx_sale_delivery_date = xx_sale_delivery_date.strftime("%Y-%m-%dT00:00:00") if xx_sale_delivery_date else "2020-01-01T00:00:00"
             if xx_sale_delivery_date:
                 if isinstance(xx_sale_delivery_date, str):
                     try:
@@ -2066,7 +2065,7 @@ class exporter(object):
                                 if self.respect_reservations
                                 else 0
                             )
-                            due = self.formatDateTime(sm["date"] or j["date_order"] or "2020-01-01T00:00:00")
+                            due = self.formatDateTime(sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00")
 
                             yield (
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
