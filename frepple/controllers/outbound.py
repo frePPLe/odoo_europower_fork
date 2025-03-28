@@ -1988,15 +1988,9 @@ class exporter(object):
             # )
             due = j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
-            if due:
-                if isinstance(due, str):
-                    try:
-                        due = datetime.fromisoformat(due)
-                    except ValueError:
-                        try:
-                            due = datetime.strptime(due, "%Y-%m-%d %H:%M:%S")
-                        except ValueError:
-                            due = datetime(2020, 1, 1)  # Default date if parsing fails
+            if not isinstance(due, datetime):
+                due = datetime.fromisoformat(due)
+
             due = self.formatDateTime(due)
             priority = 1  # We give all customer orders the same default priority
             xx_sale_delivery_date = (
@@ -2006,34 +2000,18 @@ class exporter(object):
                 or j["date_order"]
             )
 
-            if xx_sale_delivery_date:
-                if isinstance(xx_sale_delivery_date, str):
-                    try:
-                        xx_sale_delivery_date = datetime.fromisoformat(xx_sale_delivery_date)
-                    except ValueError:
-                        try:
-                            xx_sale_delivery_date = datetime.strptime(xx_sale_delivery_date, "%Y-%m-%d %H:%M:%S")
-                        except ValueError:
-                            xx_sale_delivery_date = datetime(2020, 1, 1)  # Default date if parsing fails
-                xx_sale_delivery_date = xx_sale_delivery_date.strftime("%Y-%m-%dT00:00:00")
-            else:
-                xx_sale_delivery_date = "2020-01-01T00:00:00"
+            if not isinstance(xx_sale_delivery_date, datetime):
+                xx_sale_delivery_date = datetime.fromisoformat(xx_sale_delivery_date)
+
+            xx_sale_delivery_date = self.formatDateTime(xx_sale_delivery_date)
 
             # Epower: dont_deliver_before
             dont_deliver_before = i.get("xx_do_not_deliver_before", False)
 
-            if dont_deliver_before:
-                if isinstance(dont_deliver_before, str):
-                    try:
-                        dont_deliver_before = datetime.fromisoformat(dont_deliver_before)
-                    except ValueError:
-                        try:
-                            dont_deliver_before = datetime.strptime(dont_deliver_before, "%Y-%m-%d %H:%M:%S")
-                        except ValueError:
-                            dont_deliver_before = datetime(2020, 1, 1)  # Default date if parsing fails
-                dont_deliver_before = dont_deliver_before.strftime("%Y-%m-%dT00:00:00")
-            else:
-                dont_deliver_before = "2020-01-01T00:00:00"
+            if not isinstance(dont_deliver_before, datetime):
+                dont_deliver_before = datetime.fromisoformat(dont_deliver_before)
+
+            dont_deliver_before = self.formatDateTime(dont_deliver_before)
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
             # if no stock_move if that SO line is still open, we can consider the line closed
@@ -2075,15 +2053,9 @@ class exporter(object):
                             )
                             due = sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
-                            if due:
-                                if isinstance(due, str):
-                                    try:
-                                        due = datetime.fromisoformat(due)
-                                    except ValueError:
-                                        try:
-                                            due = datetime.strptime(due, "%Y-%m-%d %H:%M:%S")
-                                        except ValueError:
-                                            due = datetime(2020, 1, 1)  # Default date if parsing fails
+                            if not isinstance(due, datetime):
+                                due = datetime.fromisoformat(due)
+
                             due = self.formatDateTime(due)
                             yield (
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
