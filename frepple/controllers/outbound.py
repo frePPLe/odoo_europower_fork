@@ -1997,11 +1997,34 @@ class exporter(object):
             )
 
             xx_sale_delivery_date = xx_sale_delivery_date.strftime("%Y-%m-%dT00:00:00") if xx_sale_delivery_date else "2020-01-01T00:00:00"
+            if xx_sale_delivery_date:
+                if isinstance(xx_sale_delivery_date, str):
+                    try:
+                        xx_sale_delivery_date = datetime.fromisoformat(xx_sale_delivery_date)
+                    except ValueError:
+                        try:
+                            xx_sale_delivery_date = datetime.strptime(xx_sale_delivery_date, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            xx_sale_delivery_date = datetime(2020, 1, 1)  # Default date if parsing fails
+                xx_sale_delivery_date = xx_sale_delivery_date.strftime("%Y-%m-%dT00:00:00")
+            else:
+                xx_sale_delivery_date = "2020-01-01T00:00:00"
 
             # Epower: dont_deliver_before
             dont_deliver_before = i.get("xx_do_not_deliver_before", False)
-            dont_deliver_before = dont_deliver_before.strftime("%Y-%m-%dT00:00:00") if dont_deliver_before else "2020-01-01T00:00:00"
 
+            if dont_deliver_before:
+                if isinstance(dont_deliver_before, str):
+                    try:
+                        dont_deliver_before = datetime.fromisoformat(dont_deliver_before)
+                    except ValueError:
+                        try:
+                            dont_deliver_before = datetime.strptime(dont_deliver_before, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            dont_deliver_before = datetime(2020, 1, 1)  # Default date if parsing fails
+                dont_deliver_before = dont_deliver_before.strftime("%Y-%m-%dT00:00:00")
+            else:
+                dont_deliver_before = "2020-01-01T00:00:00"
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
             # if no stock_move if that SO line is still open, we can consider the line closed
