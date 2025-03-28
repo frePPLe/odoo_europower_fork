@@ -2073,7 +2073,7 @@ class exporter(object):
 
                                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
                                 # '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                                '%s'
+                                # '%s'
                                 "</demand>\n"
                             ) % (
                                 quoteattr(sol_name),
@@ -2149,7 +2149,7 @@ class exporter(object):
 
                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
                 # '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                '%s'
+                # '%s'
                 "</demand>\n"
             ) % (
                 quoteattr(name),
