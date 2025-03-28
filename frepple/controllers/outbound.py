@@ -2012,13 +2012,16 @@ class exporter(object):
 
             # Epower: dont_deliver_before
             dont_deliver_before = i.get("xx_do_not_deliver_before", False)
-
-            if isinstance(dont_deliver_before, date):
-                dont_deliver_before = datetime.combine(dont_deliver_before, datetime.min.time())
-            if not isinstance(dont_deliver_before, datetime):
-                dont_deliver_before = datetime.fromisoformat(dont_deliver_before)
-
-            dont_deliver_before = self.formatDateTime(dont_deliver_before)
+            if dont_deliver_before:
+                if type(dont_deliver_before) is date:
+                    dont_deliver_before = datetime.combine(
+                        dont_deliver_before, datetime.min.time()
+                    )
+                dont_deliver_before = (
+                    dont_deliver_before.astimezone(timezone(self.timezone))
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .strftime(self.timeformat)
+                )
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
             # if no stock_move if that SO line is still open, we can consider the line closed
