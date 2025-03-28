@@ -1986,10 +1986,18 @@ class exporter(object):
             # due = self.formatDateTime(
             #     j.get("commitment_date", False) or j["date_order"]
             # )
-            due = self.formatDateTime(
-                j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
-            )
+            due = j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
+            if due:
+                if isinstance(due, str):
+                    try:
+                        due = datetime.fromisoformat(due)
+                    except ValueError:
+                        try:
+                            due = datetime.strptime(due, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            due = datetime(2020, 1, 1)  # Default date if parsing fails
+            due = self.formatDateTime(due)
             priority = 1  # We give all customer orders the same default priority
             xx_sale_delivery_date = (
                 i.get("xx_sale_delivery_date", False)
@@ -2065,8 +2073,18 @@ class exporter(object):
                                 if self.respect_reservations
                                 else 0
                             )
-                            due = self.formatDateTime(sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00")
+                            due = sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
 
+                            if due:
+                                if isinstance(due, str):
+                                    try:
+                                        due = datetime.fromisoformat(due)
+                                    except ValueError:
+                                        try:
+                                            due = datetime.strptime(due, "%Y-%m-%d %H:%M:%S")
+                                        except ValueError:
+                                            due = datetime(2020, 1, 1)  # Default date if parsing fails
+                            due = self.formatDateTime(due)
                             yield (
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
                                 # Disable the next line in frepple < 6.25
