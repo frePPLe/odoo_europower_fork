@@ -2074,8 +2074,8 @@ class exporter(object):
                                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
 
                                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
-                                # '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                                # '%s'
+                                '<dateproperty name="odoo_delivery_date" value="%s"/>'
+                                '%s'
                                 "</demand>\n"
                             ) % (
                                 quoteattr(sol_name),
@@ -2100,11 +2100,11 @@ class exporter(object):
                                     else "independent"
                                 ),
                                 "true" if i.get("xx_sale_delivery_date", False) else "false",
-                                # xx_sale_delivery_date,
-                                # '<dateproperty name="dont_deliver_before" value="%s"/>'
-                                # % dont_deliver_before
-                                # if dont_deliver_before
-                                # else "",
+                                xx_sale_delivery_date,
+                                '<dateproperty name="dont_deliver_before" value="%s"/>'
+                                % dont_deliver_before
+                                if dont_deliver_before
+                                else "",
                             )
                     # We are done with this line, move to the next one
                     continue
@@ -2150,8 +2150,8 @@ class exporter(object):
                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
 
                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
-                # '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                # '%s'
+                '<dateproperty name="odoo_delivery_date" value="%s"/>'
+                '%s'
                 "</demand>\n"
             ) % (
                 quoteattr(name),
@@ -2168,11 +2168,11 @@ class exporter(object):
                 quoteattr(i["order_id"][1]),
                 "alltogether" if j["picking_policy"] == "one" else "independent",
                 "true" if i.get("xx_sale_delivery_date", False) else "false",
-                # xx_sale_delivery_date,
-                # '<dateproperty name="dont_deliver_before" value="%s"/>'
-                # % dont_deliver_before
-                # if dont_deliver_before
-                # else "",
+                xx_sale_delivery_date,
+                '<dateproperty name="dont_deliver_before" value="%s"/>'
+                % dont_deliver_before
+                if dont_deliver_before
+                else "",
             )
         yield "</demands>\n"
 
