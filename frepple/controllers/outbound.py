@@ -1986,7 +1986,9 @@ class exporter(object):
             # due = self.formatDateTime(
             #     j.get("commitment_date", False) or j["date_order"]
             # )
-            due = j.get("xx_requested_delivery_date", False) or j["date_order"] or "2020-01-01T00:00:00"
+            due = self.formatDateTime(
+                j.get("xx_requested_delivery_date", False) or j["date_order"] or "2020-01-01T00:00:00"
+            )
 
             priority = 1  # We give all customer orders the same default priority
             xx_sale_delivery_date = (
