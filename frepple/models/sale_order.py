@@ -130,11 +130,12 @@ class SaleOrder(models.Model):
                             "minshipment": int(line.product_uom_qty),
                             "maxlateness": 86400000,
                             "priority": 20,
-                            "policy": (
-                                "independent"
-                                if sale_order.picking_policy == "direct"
-                                else "alltogether"
-                            ),
+                            #  E-POWER CUSTOMIZATION
+                            # "policy": (
+                            #     "independent"
+                            #     if sale_order.picking_policy == "direct"
+                            #     else "alltogether"
+                            # ),
                             "owner": (
                                 None
                                 if sale_order.picking_policy == "direct"

@@ -261,6 +261,9 @@ class exporter(object):
         self.currentdate = datetime.now()
         yield "<current>%s</current>" % self.currentdate.strftime("%Y-%m-%dT%H:%M:%S")
 
+        # E-POWER CUSTOMIZATION: Synchronize operation efficiencies
+        yield from self.export_operation_efficiencies()
+
         # Synchronize users
         yield from self.export_users()
 
@@ -1348,7 +1351,9 @@ class exporter(object):
                 "bom_id",
                 "workcenter_id",
                 "sequence",
-                "time_cycle",
+                # E-POWER CUSTOMIZATION
+                "xx_total_time_cycle", # Custom epower field
+                "xx_operation_type_id",  # Custom epower field
                 "skill",
                 "search_mode",
                 "secondary_workcenter",
@@ -1364,7 +1369,8 @@ class exporter(object):
                 if not self.manage_work_orders:
                     for r in mrp_routing_workcenters[i["bom_id"][0]]:
                         if r["workcenter_id"][1] == i["workcenter_id"][1]:
-                            r["time_cycle"] += i["time_cycle"]
+                            # E-POWER CUSTOMIZATION
+                            r["xx_total_time_cycle"] += i["xx_total_time_cycle"]
                             exists = True
                             break
                 if not exists:
@@ -1598,7 +1604,8 @@ class exporter(object):
                                     exists = True
                                     yield "<loads>\n"
                                 yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>\n' % (
-                                    j["time_cycle"],
+                                    # E-POWER CUSTOMIZATION
+                                    j["xx_total_time_cycle"],
                                     quoteattr(j["search_mode"]),
                                     quoteattr(
                                         self.map_workcenters[j["workcenter_id"][0]]
@@ -1620,9 +1627,11 @@ class exporter(object):
                                         (
                                             1
                                             if not secondary_workcenter["duration"]
-                                            or j["time_cycle"] == 0
+                                               # E-POWER CUSTOMIZATION
+                                            or j["xx_total_time_cycle"] == 0
                                             else secondary_workcenter["duration"]
-                                            / j["time_cycle"]
+                                                 # E-POWER CUSTOMIZATION
+                                            / j["xx_total_time_cycle"]
                                         ),
                                         quoteattr(secondary_workcenter["search_mode"]),
                                         quoteattr(
@@ -1776,9 +1785,11 @@ class exporter(object):
                                         (
                                             1
                                             if not secondary_workcenter["duration"]
-                                            or step["time_cycle"] == 0
+                                               # E-POWER CUSTOMIZATION
+                                            or step["xx_total_time_cycle"] == 0
                                             else secondary_workcenter["duration"]
-                                            / step["time_cycle"]
+                                                 # E-POWER CUSTOMIZATION
+                                            / step["xx_total_time_cycle"]
                                         ),
                                         quoteattr(secondary_workcenter["search_mode"]),
                                         quoteattr(
@@ -1798,18 +1809,22 @@ class exporter(object):
                                         ),
                                     )
                                 )
-
-                            yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
+                            # E-POWER CUSTOMIZATION
+                            # original: yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
+                            yield "<suboperation>" '<operation name=%s category=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                                 quoteattr(name),
                                 (
                                     ("description=%s " % quoteattr(i["code"]))
                                     if i["code"]
                                     else ""
                                 ),
+                                # E-POWER CUSTOMIZATION
+                                quoteattr(step["xx_operation_type_id"][1] or ""),
                                 counter * 10,
                                 (
-                                    self.convert_float_time(step["time_cycle"] / 1440.0)
-                                    if step["time_cycle"] and step["time_cycle"] > 0
+                                    # E-POWER CUSTOMIZATION
+                                    self.convert_float_time(step["xx_total_time_cycle"] / 1440.0)
+                                    if step["xx_total_time_cycle"] and step["xx_total_time_cycle"] > 0
                                     else "P0D"
                                 ),
                                 quoteattr(location),
@@ -2238,9 +2253,11 @@ class exporter(object):
                         "not in",
                         # Comment out on of the following alternative approaches:
                         # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
-                        ("draft", "sent", "bid", "to approve", "confirmed", "cancel"),
+                        # ("draft", "sent", "bid", "to approve", "confirmed", "cancel"),
                         # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
                         # ("bid", "confirmed", "cancel"),
+                        # E-POWER CUSTOMIZATION
+                        ("bid", "confirmed", "cancel", "done"),
                     ),
                     ("order_id.state", "=", False),
                     "|",
@@ -2352,7 +2369,13 @@ class exporter(object):
                     continue
                 location = self.mfg_location
                 if location and item and i.product_qty > i.qty_received:
-                    start = j.date_order
+                    #  E-POWER CUSTOMIZATION
+                    # start = j.date_order
+                    if j.state == "RFQ":
+                        start = j.date_order
+                    else:
+                        start = j.date_approve
+
                     if not isinstance(start, datetime):
                         start = datetime.fromisoformat(start)
                     end = i.date_planned
@@ -2437,7 +2460,8 @@ class exporter(object):
                 for i in self.generator.getData(
                     "mrp.production",
                     # Option 1: import only the odoo status from "confirmed" onwards
-                    search=[("state", "in", ["progress", "confirmed"])],
+                    # E-POWER CUSTOMIZATION: Add to_close status
+                    search=[("state", "in", ["progress", "confirmed", "to_close"])],
                     fields=["name"],
                 )
             ]
@@ -2514,16 +2538,26 @@ class exporter(object):
                 mto_mo = i._get_sources()
                 batch = mto_mo[0].display_name if mto_mo else i.name
 
+            # Epower: sum all open durations
+            xx_duration_open = 0
+            for wo in i.workorder_ids:
+                xx_duration_open += max(wo.xx_duration_open or 0, 0)
+
             # Create a record for the MO
             # Option 1: compute MO end date based on the start date
-            yield '<operationplan type="MO" reference=%s batch=%s start="%s" quantity="%s" status="%s">\n' % (
+            # E-POWER CUSTOMIZATION
+            # Original: yield '<operationplan type="MO" reference=%s batch=%s start="%s" quantity="%s" status="%s">\n' % (
+            yield '<operationplan type="MO" reference=%s batch=%s start="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/>\n' % (
                 quoteattr(i.name),
                 quoteattr(batch),
                 startdate,
                 qty,
-                "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                # "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                 # "approved" if i["status"]  == "confirmed" else "confirmed", # In-progress can't be rescheduled in frepple, but confirmed MOs
+                # E-POWER CUSTOMIZATION
+                quoteattr(str(i.xx_operator_qty or 1.0)),  # Epower custom field
+                xx_duration_open,  # Epower custom field
             )
             # Option 2: compute MO start date based on the end date
             # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
@@ -2700,9 +2734,9 @@ class exporter(object):
                                         (
                                             1
                                             if not sec.duration
-                                            or wo.operation_id.time_cycle == 0
+                                            or wo.operation_id.xx_total_time_cycle == 0
                                             else sec.duration
-                                            / wo.operation_idtime_cycle
+                                            / wo.operation_id.xx_total_time_cycle
                                         ),
                                         quoteattr(sec.search_mode),
                                         quoteattr(
@@ -3064,6 +3098,38 @@ class exporter(object):
             )
         yield "</buffers>\n"
 
+    def export_operation_efficiencies(self):
+        """
+        Synchronize the custom odoo xx.mrp.operation.efficiency with frepple.
+        Mapped fields:
+            - product_category_id: Many2one product.category
+            - operation_type_id: Many2one xx.mrp.operation.type
+            - size: Integer
+            - relative_duration: Float
+        """
+        op_eff = []
+        for operation_efficiency in self.generator.getData(
+            "xx.mrp.operation.efficiency",
+            fields=[
+                "product_category_id",
+                "operation_type_id",
+                "size",
+                "relative_duration",
+            ],
+        ):
+            op_eff.append(
+                {
+                    "size": operation_efficiency.size,
+                    "itemcat": operation_efficiency.product_category_id.name,
+                    "opertype": operation_efficiency.operation_type_id.name,
+                    "efficiency": operation_efficiency.relative_duration,
+                }
+            )
+
+        for page in range(math.ceil(len(op_eff) / 10)):
+            yield '<stringproperty name="operation_efficiencies_%s" value=%s/>\n' % (page + 1, quoteattr(
+                json.dumps(op_eff[page * 10:page * 10 + 10])
+            ))
 
 if __name__ == "__main__":
     #

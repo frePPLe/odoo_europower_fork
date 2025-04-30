@@ -327,6 +327,10 @@ class importer(object):
                                         product.product_tmpl_id.id,
                                     ),
                                     ("min_qty", "<=", quantity),
+                                    # E - POWER CUSTOMIZATION
+                                    # Make sure we only select supplier info that is not expired.
+                                    ("date_end", ">=", datetime.now()),
+                                    ("date_start", "<=", datetime.now())
                                 ],
                                 limit=1,
                                 order="min_qty desc",
