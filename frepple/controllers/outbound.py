@@ -3119,10 +3119,10 @@ class exporter(object):
         ):
             op_eff.append(
                 {
-                    "size": operation_efficiency.size,
-                    "itemcat": operation_efficiency.product_category_id.name,
-                    "opertype": operation_efficiency.operation_type_id.name,
-                    "efficiency": operation_efficiency.relative_duration,
+                    "size": operation_efficiency["size"],
+                    "itemcat": operation_efficiency["product_category_id"][1],
+                    "opertype": operation_efficiency["operation_type_id"][1],
+                    "efficiency": operation_efficiency["relative_duration"],
                 }
             )
 
