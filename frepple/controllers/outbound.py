@@ -25,6 +25,7 @@
 import json
 import logging
 import pytz
+import math
 import xmlrpc.client
 from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta, date
@@ -1813,13 +1814,14 @@ class exporter(object):
                             # original: yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                             yield "<suboperation>" '<operation name=%s category=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                                 quoteattr(name),
+                                # E-POWER CUSTOMIZATION
+                                quoteattr(step["xx_operation_type_id"][1] or ""),
                                 (
                                     ("description=%s " % quoteattr(i["code"]))
                                     if i["code"]
                                     else ""
                                 ),
-                                # E-POWER CUSTOMIZATION
-                                quoteattr(step["xx_operation_type_id"][1] or ""),
+
                                 counter * 10,
                                 (
                                     # E-POWER CUSTOMIZATION
@@ -2371,12 +2373,15 @@ class exporter(object):
                 if location and item and i.product_qty > i.qty_received:
                     #  E-POWER CUSTOMIZATION
                     # start = j.date_order
-                    if j.state == "RFQ":
+                    if j.state not in ("purchase", "done"):
                         start = j.date_order
                     else:
                         start = j.date_approve
 
                     if not isinstance(start, datetime):
+                        print(j)
+                        print(j.state)
+                        print(start)
                         start = datetime.fromisoformat(start)
                     end = i.date_planned
                     if not isinstance(end, datetime):
