@@ -2273,173 +2273,175 @@ class exporter(object):
         yield "<!-- open purchase orders -->\n"
         yield "<operationplans>\n"
         for i in po_line.values():
-            if i.move_ids:
-                # METHOD 1: Use the stock move information rather than the po line
-                for mv in i.move_ids:
-                    if (
-                        not mv.product_id
-                        or not mv.purchase_line_id
-                        or not mv.location_dest_id
-                        or mv.state in ("draft", "cancel", "done")
-                    ):
-                        continue
-                    j = mv.purchase_line_id.order_id
-                    po_line_reference = "%s - %s - %s - %s" % (
-                        j.name,
-                        mv.picking_id.name,
-                        mv.id,
-                        mv.purchase_line_id.id,
-                    )
-                    if self.has_subcontracting and mv.is_subcontract:
-                        # PO lines on a subcontracting BOM are mapped as a MO in frepple
-                        for k in mv.move_orig_ids:
-                            if k.production_id:
-                                self.subcontracting_mo_po_mapping[
-                                    k.production_id.id
-                                ] = po_line_reference
-                        continue
-                    item = self.product_product.get(mv.product_id.id, None)
-                    if not item:
-                        continue
-
-                    # MTO links
-                    if (
-                        self.route_mto
-                        in self.product_templates[item["template"]]["route_ids"]
-                    ):
-                        mto_so = mv.move_dest_ids.group_id.sale_id
-                        batch = mto_so[0].name if mto_so else None
-                        if not batch:
-                            mto_mo = j._get_mrp_productions()
-                            if mto_mo:
-                                batch = mto_mo[0].display_name
-                    else:
-                        batch = None
-
-                    location = self.map_locations.get(mv.location_dest_id.id, None)
-                    if not location:
-                        continue
-                    start = j.date_order
-                    if not isinstance(start, datetime):
-                        start = datetime.fromisoformat(start)
-                    end = mv.date
-                    if not isinstance(end, datetime):
-                        end = datetime.fromisoformat(end)
-                    start = self.formatDateTime(start if start < end else end)
-                    end = self.formatDateTime(end)
-                    qty = mv.product_qty
-                    supplier = self.map_customers.get(j.partner_id.id)
-                    if not supplier:
-                        # supplier is archived :-(
-                        for sup in self.generator.getData(
-                            "res.partner",
-                            search=[
-                                ("id", "=", j.partner_id.id),
-                                "|",
-                                ("active", "=", True),
-                                ("active", "=", False),
-                            ],
-                            fields=["name", "active"],
-                        ):
-                            supplier = "%s %s%s" % (
-                                sup["name"],
-                                "(archived) " if not sup["active"] else "",
-                                sup["id"],
-                            )
-                            self.map_customers[sup["id"]] = supplier
-                            break
-                    if not supplier:
-                        continue
-                    if qty >= 0:
-                        yield '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
-                            quoteattr(po_line_reference),
-                            "batch=%s " % quoteattr(batch) if batch else "",
-                            start,
-                            end,
-                            qty,
-                            quoteattr(item["name"]),
-                            quoteattr(location),
-                            quoteattr(supplier),
-                        )
-            else:
+            # E-POWER CUSTOMIZATION
+            # We prefer to use the old way that frepple handled purchase order imports.
+            # if i.move_ids:
+            #     # METHOD 1: Use the stock move information rather than the po line
+            #     for mv in i.move_ids:
+            #         if (
+            #             not mv.product_id
+            #             or not mv.purchase_line_id
+            #             or not mv.location_dest_id
+            #             or mv.state in ("draft", "cancel", "done")
+            #         ):
+            #             continue
+            #         j = mv.purchase_line_id.order_id
+            #         po_line_reference = "%s - %s - %s - %s" % (
+            #             j.name,
+            #             mv.picking_id.name,
+            #             mv.id,
+            #             mv.purchase_line_id.id,
+            #         )
+            #         if self.has_subcontracting and mv.is_subcontract:
+            #             # PO lines on a subcontracting BOM are mapped as a MO in frepple
+            #             for k in mv.move_orig_ids:
+            #                 if k.production_id:
+            #                     self.subcontracting_mo_po_mapping[
+            #                         k.production_id.id
+            #                     ] = po_line_reference
+            #             continue
+            #         item = self.product_product.get(mv.product_id.id, None)
+            #         if not item:
+            #             continue
+            #
+            #         # MTO links
+            #         if (
+            #             self.route_mto
+            #             in self.product_templates[item["template"]]["route_ids"]
+            #         ):
+            #             mto_so = mv.move_dest_ids.group_id.sale_id
+            #             batch = mto_so[0].name if mto_so else None
+            #             if not batch:
+            #                 mto_mo = j._get_mrp_productions()
+            #                 if mto_mo:
+            #                     batch = mto_mo[0].display_name
+            #         else:
+            #             batch = None
+            #
+            #         location = self.map_locations.get(mv.location_dest_id.id, None)
+            #         if not location:
+            #             continue
+            #         start = j.date_order
+            #         if not isinstance(start, datetime):
+            #             start = datetime.fromisoformat(start)
+            #         end = mv.date
+            #         if not isinstance(end, datetime):
+            #             end = datetime.fromisoformat(end)
+            #         start = self.formatDateTime(start if start < end else end)
+            #         end = self.formatDateTime(end)
+            #         qty = mv.product_qty
+            #         supplier = self.map_customers.get(j.partner_id.id)
+            #         if not supplier:
+            #             # supplier is archived :-(
+            #             for sup in self.generator.getData(
+            #                 "res.partner",
+            #                 search=[
+            #                     ("id", "=", j.partner_id.id),
+            #                     "|",
+            #                     ("active", "=", True),
+            #                     ("active", "=", False),
+            #                 ],
+            #                 fields=["name", "active"],
+            #             ):
+            #                 supplier = "%s %s%s" % (
+            #                     sup["name"],
+            #                     "(archived) " if not sup["active"] else "",
+            #                     sup["id"],
+            #                 )
+            #                 self.map_customers[sup["id"]] = supplier
+            #                 break
+            #         if not supplier:
+            #             continue
+            #         if qty >= 0:
+            #             yield '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
+            #                 quoteattr(po_line_reference),
+            #                 "batch=%s " % quoteattr(batch) if batch else "",
+            #                 start,
+            #                 end,
+            #                 qty,
+            #                 quoteattr(item["name"]),
+            #                 quoteattr(location),
+            #                 quoteattr(supplier),
+            #             )
+            # else:
                 # METHOD 2: Create purchasing operations from purchase order lines
-                if not i["product_id"] or i["state"] == "cancel":
-                    continue
-                item = self.product_product.get(i.product_id.id, None)
-                j = i.order_id
-                if not item:
-                    continue
-                location = self.mfg_location
-                if location and item and i.product_qty > i.qty_received:
-                    #  E-POWER CUSTOMIZATION
-                    # start = j.date_order
-                    if j.state not in ("purchase", "done"):
-                        start = j.date_order
-                    else:
-                        start = j.date_approve
+            if not i["product_id"] or i["state"] == "cancel":
+                continue
+            item = self.product_product.get(i.product_id.id, None)
+            j = i.order_id
+            if not item:
+                continue
+            location = self.mfg_location
+            if location and item and i.product_qty > i.qty_received:
+                #  E-POWER CUSTOMIZATION
+                # start = j.date_order
+                if j.state not in ("purchase", "done"):
+                    start = j.date_order
+                else:
+                    start = j.date_approve
 
-                    if not isinstance(start, datetime):
-                        print(j)
-                        print(j.state)
-                        print(start)
-                        start = datetime.fromisoformat(start)
-                    end = i.date_planned
-                    if not isinstance(end, datetime):
-                        end = datetime.fromisoformat(end)
-                    start = self.formatDateTime(start if start < end else end)
-                    end = self.formatDateTime(end)
-                    qty = self.convert_qty_uom(
-                        i.product_qty - i.qty_received,
-                        i.product_uom.id,
-                        self.product_product[i.product_id.id]["template"],
-                    )
-                    supplier = self.map_customers.get(j.partner_id.id)
-                    if not supplier:
-                        # supplier is archived :-(
-                        for sup in self.generator.getData(
-                            "res.partner",
-                            search=[
-                                ("id", "=", j.partner_id.id),
-                                "|",
-                                ("active", "=", True),
-                                ("active", "=", False),
-                            ],
-                            fields=["name", "active"],
-                        ):
-                            supplier = "%s %s%s" % (
-                                sup["name"],
-                                "(archived) " if not sup["active"] else "",
-                                sup["id"],
-                            )
-                            self.map_customers[sup["id"]] = supplier
-                            break
-                    if not supplier:
-                        continue
-
-                    # MTO links
-                    if (
-                        self.route_mto
-                        in self.product_templates[item["template"]]["route_ids"]
+                if not isinstance(start, datetime):
+                    print(j)
+                    print(j.state)
+                    print(start)
+                    start = datetime.fromisoformat(start)
+                end = i.date_planned
+                if not isinstance(end, datetime):
+                    end = datetime.fromisoformat(end)
+                start = self.formatDateTime(start if start < end else end)
+                end = self.formatDateTime(end)
+                qty = self.convert_qty_uom(
+                    i.product_qty - i.qty_received,
+                    i.product_uom.id,
+                    self.product_product[i.product_id.id]["template"],
+                )
+                supplier = self.map_customers.get(j.partner_id.id)
+                if not supplier:
+                    # supplier is archived :-(
+                    for sup in self.generator.getData(
+                        "res.partner",
+                        search=[
+                            ("id", "=", j.partner_id.id),
+                            "|",
+                            ("active", "=", True),
+                            ("active", "=", False),
+                        ],
+                        fields=["name", "active"],
                     ):
-                        mto_so = i.move_dest_ids.group_id.sale_id
-                        batch = mto_so[0].name if mto_so else None
-                        if not batch:
-                            mto_mo = j._get_mrp_productions()
-                            if mto_mo:
-                                batch = mto_mo[0].display_name
-                    else:
-                        batch = None
+                        supplier = "%s %s%s" % (
+                            sup["name"],
+                            "(archived) " if not sup["active"] else "",
+                            sup["id"],
+                        )
+                        self.map_customers[sup["id"]] = supplier
+                        break
+                if not supplier:
+                    continue
 
-                    yield '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
-                        quoteattr("%s - %s" % (j.name, i.id)),
-                        "batch=%s " % quoteattr(batch) if batch else "",
-                        start,
-                        end,
-                        qty,
-                        quoteattr(item["name"]),
-                        quoteattr(location),
-                        quoteattr(supplier),
-                    )
+                # MTO links
+                if (
+                    self.route_mto
+                    in self.product_templates[item["template"]]["route_ids"]
+                ):
+                    mto_so = i.move_dest_ids.group_id.sale_id
+                    batch = mto_so[0].name if mto_so else None
+                    if not batch:
+                        mto_mo = j._get_mrp_productions()
+                        if mto_mo:
+                            batch = mto_mo[0].display_name
+                else:
+                    batch = None
+
+                yield '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
+                    quoteattr("%s - %s" % (j.name, i.id)),
+                    "batch=%s " % quoteattr(batch) if batch else "",
+                    start,
+                    end,
+                    qty,
+                    quoteattr(item["name"]),
+                    quoteattr(location),
+                    quoteattr(supplier),
+                )
         yield "</operationplans>\n"
 
     def export_manufacturingorders(self):
@@ -2526,7 +2528,10 @@ class exporter(object):
             except Exception:
                 continue
             qty = self.convert_qty_uom(
-                i.qty_producing if i.qty_producing else i.product_qty,
+                # E-POWER CUSTOMIZATION
+                # Original:
+                # i.qty_producing if i.qty_producing else i.product_qty,
+                i.product_qty,
                 i.product_uom_id.id,
                 self.product_product[i.product_id.id]["template"],
             )
@@ -2771,12 +2776,11 @@ class exporter(object):
 
                     # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
                     # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
-                    if wo.state == "progress":
-                        state = "confirmed"
-                    elif wo.state in ("done", "to_close", "cancel"):
+                    # E-POWER CUSTOMIZATION
+                    if wo.state in ("done", "to_close", "cancel"):
                         state = "completed"
                     else:
-                        state = "approved"
+                        state = "confirmed"
                     try:
                         if wo.date_finished:
                             wo_date = ' end="%s"' % self.formatDateTime(
