@@ -576,13 +576,14 @@ class importer(object):
                             ],
                             limit=1,
                         )
+                        bom_id = self.env['mrp.bom'].browse(int(elem.get("operation").rsplit(" ", 1)[1]))
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
                         # Also do not create secondary work center records
                         context.update(
                             {
-                                "default_picking_type_id": picking.id,
+                                "default_picking_type_id": bom_id.picking_type_id.id or picking.id,
                                 "ignore_secondary_workcenters": True,
                             }
                         )
@@ -596,7 +597,7 @@ class importer(object):
                                     "product_id": int(item_id),
                                     "company_id": self.company.id,
                                     "product_uom_id": int(uom_id),
-                                    "picking_type_id": picking.id,
+                                    "picking_type_id": bom_id.picking_type_id.id or picking.id,
                                     "bom_id": int(
                                         elem.get("operation").rsplit(" ", 1)[1]
                                     ),
