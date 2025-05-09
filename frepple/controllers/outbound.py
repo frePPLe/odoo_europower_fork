@@ -1184,7 +1184,7 @@ class exporter(object):
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
 
             # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" subcategory="%s,%s"%s%s>%s\n' % (
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s"%s%s>%s\n' % (
                 quoteattr(name),
                 (
                     ("description=%s" % (quoteattr(description),))
@@ -1199,6 +1199,7 @@ class exporter(object):
                 )  # Option 1:  Map "sales price" to frepple
                 #  max(0, tmpl["standard_price"]) or 0)  # Option 2: Map the "cost" to frepple
                 / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
+                quoteattr(tmpl["categ_id"][1]),
                 tmpl["uom_id"][0],
                 i["id"],
                 ' type="item_mto"' if self.route_mto in tmpl["route_ids"] else "",
