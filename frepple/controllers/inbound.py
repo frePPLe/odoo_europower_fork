@@ -113,26 +113,26 @@ class importer(object):
             stck_warehouse = self.env["stock.warehouse"]
             stck_location = self.env["stock.location"]
             change_product_qty = self.env["change.production.qty"]
-        if self.mode == 1:
-            # Cancel previous draft purchase quotations
-            m = self.env["purchase.order"]
-            recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
-            recs.write({"state": "cancel"})
-            recs.unlink()
-            msg.append("Removed %s old draft purchase orders" % len(recs))
-
-            # Cancel previous draft manufacturing orders
-            recs = mfg_order.search(
-                [
-                    "|",
-                    ("state", "=", "draft"),
-                    ("state", "=", "cancel"),
-                    ("origin", "=", "frePPLe"),
-                ]
-            )
-            recs.write({"state": "cancel"})
-            recs.unlink()
-            msg.append("Removed %s old draft manufacturing orders" % len(recs))
+        # if self.mode == 1:
+        #     # Cancel previous draft purchase quotations
+        #     m = self.env["purchase.order"]
+        #     recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
+        #     recs.write({"state": "cancel"})
+        #     recs.unlink()
+        #     msg.append("Removed %s old draft purchase orders" % len(recs))
+        #
+        #     # Cancel previous draft manufacturing orders
+        #     recs = mfg_order.search(
+        #         [
+        #             "|",
+        #             ("state", "=", "draft"),
+        #             ("state", "=", "cancel"),
+        #             ("origin", "=", "frePPLe"),
+        #         ]
+        #     )
+        #     recs.write({"state": "cancel"})
+        #     recs.unlink()
+        #     msg.append("Removed %s old draft manufacturing orders" % len(recs))
 
         # Parsing the XML data file
         countproc = 0
@@ -729,32 +729,33 @@ class importer(object):
                 wo_data = []
                 root.clear()
                 # OPTIONAL SECTION: Store the planned delivery date (as computed by frepple) on odoo sales orders
-                # elif event == "end" and elem.tag == "demand":
-                #     try:
-                #         deliverydate = (
-                #             timezone(self.env.user.tz)
-                #             .localize(
-                #                 datetime.strptime(
-                #                     elem.get("deliverydate"), "%Y-%m-%d %H:%M:%S"
-                #                 ),
-                #                 is_dst=None,
-                #             )
-                #             .astimezone(pytz.utc)
-                #         ).strftime("%Y-%m-%d %H:%M:%S")
-                #         sol_name = elem.get("name").rsplit(" ", 1)
-                #         for so_line in self.env["sale.order.line"].search(
-                #             [("id", "=", sol_name[1])], limit=1
-                #         ):
-                #             so_line.sale_delivery_date = (
-                #                 datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
-                #             ).date()
-                #             so_line.frepple_write_date = datetime.now()
-                #             so_line.order_id._compute_commitment_date()
-                #     except Exception as e:
-                #         logger.error("Exception %s" % e)
-                #         msg.append(str(e))
+            elif event == "end" and elem.tag == "demand":
+                try:
+                    deliverydate = (
+                        timezone(self.env.user.tz)
+                        .localize(
+                            datetime.strptime(
+                                elem.get("deliverydate"), "%Y-%m-%d %H:%M:%S"
+                            ),
+                            is_dst=None,
+                        )
+                        .astimezone(UTC)
+                    ).strftime("%Y-%m-%d %H:%M:%S")
+                    sol_name = elem.get("name").rsplit(" ", 1)
+                    for so_line in self.env["sale.order.line"].search(
+                        [("id", "=", sol_name[1])], limit=1
+                    ):
+                        so_line.xx_sale_delivery_date = (
+                            datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
+                        ).date()
+                        so_line.frepple_write_date = datetime.now()
+                        so_line.order_id._compute_commitment_date()
+                except Exception as e:
+                    logger.error("Exception %s" % e)
+                    msg.append(str(e))
                 # Remove the element now to keep the DOM tree small
                 root.clear()
+
             elif event == "start" and elem.tag in ["operationplans", "demands"]:
                 # Remember the root element
                 root = elem
