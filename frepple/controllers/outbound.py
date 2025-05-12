@@ -2372,16 +2372,10 @@ class exporter(object):
 
             if not i["product_id"] or i["state"] == "cancel":
                 continue
-
-
-
             item = self.product_product.get(i.product_id.id, None)
             j = i.order_id
             if not item:
                 continue
-
-
-
             location = self.mfg_location
             if location and item and i.product_qty > i.qty_received:
                 #  E-POWER CUSTOMIZATION
