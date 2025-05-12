@@ -2273,33 +2273,35 @@ class exporter(object):
         yield "<!-- open purchase orders -->\n"
         yield "<operationplans>\n"
         for i in po_line.values():
+            line_is_subcontracting = False
             # E-POWER CUSTOMIZATION
             # We prefer to use the old way that frepple handled purchase order imports.
-            # if i.move_ids:
-            #     # METHOD 1: Use the stock move information rather than the po line
-            #     for mv in i.move_ids:
-            #         if (
-            #             not mv.product_id
-            #             or not mv.purchase_line_id
-            #             or not mv.location_dest_id
-            #             or mv.state in ("draft", "cancel", "done")
-            #         ):
-            #             continue
-            #         j = mv.purchase_line_id.order_id
-            #         po_line_reference = "%s - %s - %s - %s" % (
-            #             j.name,
-            #             mv.picking_id.name,
-            #             mv.id,
-            #             mv.purchase_line_id.id,
-            #         )
-            #         if self.has_subcontracting and mv.is_subcontract:
-            #             # PO lines on a subcontracting BOM are mapped as a MO in frepple
-            #             for k in mv.move_orig_ids:
-            #                 if k.production_id:
-            #                     self.subcontracting_mo_po_mapping[
-            #                         k.production_id.id
-            #                     ] = po_line_reference
-            #             continue
+            if i.move_ids:
+                # METHOD 1: Use the stock move information rather than the po line
+                for mv in i.move_ids:
+                    if (
+                        not mv.product_id
+                        or not mv.purchase_line_id
+                        or not mv.location_dest_id
+                        or mv.state in ("draft", "cancel", "done")
+                    ):
+                        continue
+                    j = mv.purchase_line_id.order_id
+                    po_line_reference = "%s - %s - %s - %s" % (
+                        j.name,
+                        mv.picking_id.name,
+                        mv.id,
+                        mv.purchase_line_id.id,
+                    )
+                    if self.has_subcontracting and mv.is_subcontract:
+                        # PO lines on a subcontracting BOM are mapped as a MO in frepple
+                        for k in mv.move_orig_ids:
+                            if k.production_id:
+                                self.subcontracting_mo_po_mapping[
+                                    k.production_id.id
+                                ] = po_line_reference
+                        line_is_subcontracting = True
+
             #         item = self.product_product.get(mv.product_id.id, None)
             #         if not item:
             #             continue
@@ -2365,12 +2367,21 @@ class exporter(object):
             #             )
             # else:
                 # METHOD 2: Create purchasing operations from purchase order lines
+            if line_is_subcontracting:
+                continue
+
             if not i["product_id"] or i["state"] == "cancel":
                 continue
+
+
+
             item = self.product_product.get(i.product_id.id, None)
             j = i.order_id
             if not item:
                 continue
+
+
+
             location = self.mfg_location
             if location and item and i.product_qty > i.qty_received:
                 #  E-POWER CUSTOMIZATION
@@ -2458,7 +2469,6 @@ class exporter(object):
         '1' -> operationplan.status = "confirmed"
         """
         now = datetime.now()
-
         # Retrieve reserved quantities from stock moves
         if self.respect_reservations:
             # a first call to get all confirmed MO IDs
