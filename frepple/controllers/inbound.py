@@ -345,6 +345,8 @@ class importer(object):
                                     "product_uom": int(uom_id),
                                 }
                             )
+                            po = po_line.order_id
+
                             # Then let odoo computes all the fields (taxes, name, description...)
 
                             d = po_line._prepare_purchase_order_line(
