@@ -3072,11 +3072,13 @@ class exporter(object):
             self.generator.env.cr.execute(
                 "SELECT product_id, stock_quant.location_id, sum(quantity), sum(reserved_quantity) "
                 "FROM stock_quant "
-                "INNER JOIN stock_location ON stock_quant.location_id = stock_location.id "
+                # E-POWER CUSTOMIZATION
+                # "INNER JOIN stock_location ON stock_quant.location_id = stock_location.id "
                 "WHERE quantity > 0 "
-                "AND stock_location.scrap_location is distinct from true "
-                "AND stock_location.return_location is distinct from true "
-                "AND stock_location.usage = 'internal' "
+                # E-POWER CUSTOMIZATION
+                # "AND stock_location.scrap_location is distinct from true "
+                # "AND stock_location.return_location is distinct from true "
+                # "AND stock_location.usage = 'internal' "
                 "GROUP BY product_id, stock_quant.location_id "
                 "ORDER BY stock_quant.location_id ASC"
             )
