@@ -294,6 +294,10 @@ class importer(object):
                             po.payment_term_id = (
                                 po.partner_id.property_supplier_payment_term_id.id
                             )
+                            if po.partner_id.property_purchase_currency_id:
+                                po.currency_id = (
+                                    po.partner_id.property_purchase_currency_id
+                                )
                             supplier_reference[supplier_id] = {
                                 "id": po.id,
                                 "min_planned": date_planned,
