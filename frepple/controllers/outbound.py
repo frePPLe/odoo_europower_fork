@@ -2574,7 +2574,7 @@ class exporter(object):
                 startdate = self.formatDateTime(
                     i.date_start if i.date_start else i.date_planned_start
                 )
-                # enddate = self.formatDateTime(i.date_planned_finished)
+                enddate = self.formatDateTime(i.date_planned_finished)
             except Exception:
                 continue
             qty = self.convert_qty_uom(
@@ -2607,10 +2607,10 @@ class exporter(object):
             # Option 1: compute MO end date based on the start date
             # E-POWER CUSTOMIZATION
             # Original: yield '<operationplan type="MO" reference=%s batch=%s start="%s" quantity="%s" status="%s">\n' % (
-            yield '<operationplan type="MO" reference=%s batch=%s start="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/>\n' % (
+            yield '<operationplan type="MO" reference=%s batch=%s end="%s" quantity="%s" status="%s"><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/>\n' % (
                 quoteattr(i.name),
                 quoteattr(batch),
-                startdate,
+                enddate,
                 qty,
                 # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
                 "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
@@ -2700,14 +2700,15 @@ class exporter(object):
                         suboperation = suboperation[0:300]
 
                     # Get remaining duration of the WO
-                    time_left = wo.duration_expected - wo.duration_unit
-                    if wo.is_user_working and wo.time_ids:
-                        # The WO is currently being worked on
-                        for tm in wo.time_ids:
-                            if tm.date_start and not tm.date_end:
-                                time_left -= round(
-                                    (now - tm.date_start).total_seconds() / 60
-                                )
+                    # time_left = wo.duration_expected - wo.duration_unit
+                    # if wo.is_user_working and wo.time_ids:
+                    #     # The WO is currently being worked on
+                    #     for tm in wo.time_ids:
+                    #         if tm.date_start and not tm.date_end:
+                    #             time_left -= round(
+                    #                 (now - tm.date_start).total_seconds() / 60
+                    #             )
+                    time_left = wo.xx_duration_open * 60 if wo.xx_duration_open else 0
 
                     yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
                         quoteattr("%s - %s" % (suboperation, wo.id)),
@@ -2844,14 +2845,27 @@ class exporter(object):
                             if wo.is_user_working:
                                 dt = now
                             else:
+                                # dt = max(
+                                #     (
+                                #         wo.date_start
+                                #         if wo.date_start
+                                #         else (
+                                #             wo.date_start
+                                #             if wo.date_start
+                                #             else i.date_start
+                                #         )
+                                #     ),
+                                #     now,
+                                # )
+                                # E-POWER use the end date instead of the start date
                                 dt = max(
                                     (
-                                        wo.date_start
-                                        if wo.date_start
+                                        wo.date_finished
+                                        if wo.date_finished
                                         else (
-                                            wo.date_start
-                                            if wo.date_start
-                                            else i.date_start
+                                            wo.date_finished
+                                            if wo.date_finished
+                                            else i.date_finished
                                         )
                                     ),
                                     now,
@@ -2859,12 +2873,14 @@ class exporter(object):
                             wo_date = ' start="%s"' % self.formatDateTime(dt)
                     except Exception:
                         wo_date = ""
-                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/>' % (
+                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><doubleproperty name="operator_qty" value=%s/><doubleproperty name="open_duration" value="%s"/><owner reference=%s/>' % (
                         quoteattr(wo.display_name),
                         wo_date,
                         qty,
                         state,
                         quoteattr("%s - %s" % (suboperation, wo.id)),
+                        quoteattr(str(i.xx_operator_qty or 1.0)),  # Epower custom field
+                        wo.xx_duration_open,  # Epower custom field
                         quoteattr(i.name),
                     )
                     if (
