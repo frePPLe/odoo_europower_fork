@@ -57,7 +57,21 @@ class Odoo_generator:
             return getattr(obj, method)(*args)
         return None
 
-    def getData(self, model, search=[], order=None, fields=[], ids=None, object=False):
+    def getData(
+        self,
+        model,
+        search=None,
+        order=None,
+        fields=None,
+        ids=None,
+        object=False,
+        limit=None,
+        offset=0,
+    ):
+        if search is None:
+            search = []
+        if fields is None:
+            fields = []
         if ids is not None:
             if object:
                 return self.env[model].browse(ids) if ids else []
@@ -65,14 +79,24 @@ class Odoo_generator:
                 return self.env[model].browse(ids).read(fields) if ids else []
         if order:
             if object:
-                return self.env[model].search(search, order=order)
+                return self.env[model].search(
+                    search, order=order, limit=limit, offset=offset
+                )
             else:
-                return self.env[model].search(search, order=order).read(fields)
+                return (
+                    self.env[model]
+                    .search(search, order=order, limit=limit, offset=offset)
+                    .read(fields)
+                )
         else:
             if object:
-                return self.env[model].search(search)
+                return self.env[model].search(search, limit=limit, offset=offset)
             else:
-                return self.env[model].search(search).read(fields)
+                return (
+                    self.env[model]
+                    .search(search, limit=limit, offset=offset)
+                    .read(fields)
+                )
 
 
 class XMLRPC_generator:
@@ -102,7 +126,11 @@ class XMLRPC_generator:
             self.db, self.uid, self.password, model, method, [id], []
         )
 
-    def getData(self, model, search=None, order="id asc", fields=[], ids=[]):
+    def getData(self, model, search=None, order="id asc", fields=None, ids=None):
+        if search is None:
+            search = []
+        if fields is None:
+            fields = []
         if ids:
             page_ids = [ids]
         else:
@@ -2551,6 +2579,7 @@ class exporter(object):
         ):
             # Filter out irrelevant manufacturing orders
             location = self.map_locations.get(i.location_dest_id.id, None)
+            operation = i.name
             if not location and i.picking_type_id:
                 # For subcontracting MO we find the warehouse on the operation type
                 operation_type = self.operation_types.get(i.picking_type_id.id, None)
@@ -2559,7 +2588,7 @@ class exporter(object):
                     if location:
                         code = self.subcontracting_mo_po_mapping.get(i.id, None)
                         if code:
-                            i.name = code
+                            operation = code
             item = self.product_product.get(i.product_id.id, None)
             if not item or not location:
                 continue
@@ -2569,14 +2598,16 @@ class exporter(object):
             # materials.
             # To reflect this flexibility we need a frepple operation specific
             # to each manufacturing order.
-            operation = i.name
             try:
                 startdate = self.formatDateTime(
                     i.date_start if i.date_start else i.date_planned_start
                 )
-                enddate = self.formatDateTime(i.date_planned_finished)
             except Exception:
                 continue
+            try:
+                enddate = self.formatDateTime(i.date_finished)
+            except Exception:
+                enddate = None
             qty = self.convert_qty_uom(
                 # E-POWER CUSTOMIZATION
                 # Original:
