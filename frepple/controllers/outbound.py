@@ -2739,7 +2739,7 @@ class exporter(object):
                     #             time_left -= round(
                     #                 (now - tm.date_start).total_seconds() / 60
                     #             )
-                    time_left = wo.xx_duration_open * 60 if wo.xx_duration_open else 0
+                    time_left = wo.xx_duration_open or 0
 
                     yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
                         quoteattr("%s - %s" % (suboperation, wo.id)),
