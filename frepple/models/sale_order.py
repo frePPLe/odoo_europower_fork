@@ -211,6 +211,7 @@ class SaleOrder(models.Model):
             try:
                 response_json = frepple_response.json()
             except Exception:
+                print(frepple_response.text)
                 raise exceptions.UserError("Invalid response from frePPLe")
             if not response_json.get("demands"):
                 raise exceptions.UserError(
@@ -247,7 +248,8 @@ class SaleOrder(models.Model):
 
                 sale_order.write({"commitment_date": furthest_end_date_utc})
 
-            if len(response_json["demands"]) < len(sale_order.order_line):
+
+            if len(response_json["demands"]) < len(sale_order.order_line.filtered(lambda order_line: order_line.product_id.type == "product")):
                 raise exceptions.UserError(
                     "Warning: FrePPLe was unable to plan %sthe sales order line%s"
                     % (("", "") if len(sale_order.order_line) == 1 else ("all ", "s"))
