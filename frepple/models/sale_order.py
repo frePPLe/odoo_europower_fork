@@ -141,6 +141,7 @@ class SaleOrder(models.Model):
                                 if sale_order.picking_policy == "direct"
                                 else sale_order.name
                             ),
+                            "source": "odoo_1",
                         }
                     )
 

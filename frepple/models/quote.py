@@ -254,6 +254,7 @@ class Quote(models.Model):
                         "minshipment": quote.minimum_shipment,
                         "maxlateness": quote.maximum_lateness * 86400,
                         "priority": 20,
+                        "source": "odoo_1",
                     }
                 )
 
