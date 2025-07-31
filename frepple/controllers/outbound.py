@@ -2142,6 +2142,13 @@ class exporter(object):
                         )
                         sm = stock_moves_dict.get(mv_id)
                         if sm:
+                            sm_product = (
+                                self.product_product.get(sm["product_id"][0], None)
+                                if sm["product_id"]
+                                else product
+                            )
+                            if not sm_product:
+                                continue
                             qty = self.convert_qty_uom(
                                 sm["product_uom_qty"],
                                 sm["product_uom"],
@@ -2180,7 +2187,7 @@ class exporter(object):
                                 priority,
                                 j["picking_policy"] == "one" and qty or 0.0,
                                 "open" if qty - reserved_quantity > 0 else "closed",
-                                quoteattr(product["name"]),
+                                quoteattr(sm_product["name"]),
                                 quoteattr(customer),
                                 quoteattr(location),
                                 # Disable the next 2 lines in frepple < 6.25
