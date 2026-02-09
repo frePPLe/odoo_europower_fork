@@ -2031,7 +2031,20 @@ class exporter(object):
                         "state",
                         "in",
                         ["waiting", "partially_available", "assigned", "confirmed"],
-                    )
+                    ),
+                    (
+                        "picking_type_id.name",
+                        "not in",
+                        [
+                            # A rental creates multiple moves.
+                            # We want to keep only the move with picking type "E-power Nieuwerkerken: Pick Orders Rental"
+                            "E-power Nieuwerkerken: Pick Rental",
+                            "E-power Nieuwerkerken: Check Rental",
+                            "E-power Nieuwerkerken: Pack Orders Rental",
+                            "E-power Nieuwerkerken: Ship Orders Rental",
+                        ],
+                    ),
+                    ("sale_line_id", "!=", False),
                 ],
                 fields=[
                     "id",
