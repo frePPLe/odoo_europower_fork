@@ -291,6 +291,10 @@ class importer(object):
                                     "origin": "frePPLe",
                                 }
                             )
+                            logger.error(
+                                "FREPPLE DEBUGGING A: %s %s"
+                                % (po.name, po.date_planned)
+                            )
                             po.payment_term_id = (
                                 po.partner_id.property_supplier_payment_term_id.id
                             )
@@ -350,7 +354,10 @@ class importer(object):
                                 }
                             )
                             po = po_line.order_id
-
+                            logger.error(
+                                "FREPPLE DEBUGGING B: %s %s"
+                                % (po.name, po.date_planned)
+                            )
                             # Then let odoo computes all the fields (taxes, name, description...)
 
                             d = po_line._prepare_purchase_order_line(
@@ -361,9 +368,21 @@ class importer(object):
                                 supplier,
                                 po,
                             )
+                            logger.error(
+                                "FREPPLE DEBUGGING C: %s %s"
+                                % (po.name, po.date_planned)
+                            )
                             d["date_planned"] = date_planned
+                            logger.error(
+                                "FREPPLE DEBUGGING D: %s %s"
+                                % (po.name, po.date_planned)
+                            )
                             # Finally update the PO line
                             po_line.write(d)
+                            logger.error(
+                                "FREPPLE DEBUGGING E: %s %s"
+                                % (po.name, po.date_planned)
+                            )
 
                             # Aggregation of quantities under the same PO line
                             # only happens in incremental export
@@ -376,6 +395,10 @@ class importer(object):
                                 date_planned,
                             )
                             po_line.product_qty = po_line.product_qty + float(quantity)
+                            logger.error(
+                                "FREPPLE DEBUGGING F: %s %s"
+                                % (po_line.order_id.name, po_line.order_id.date_planned)
+                            )
                         countproc += 1
                     elif ordertype == "DO":
                         if not hasattr(self, "do_index"):
@@ -770,10 +793,12 @@ class importer(object):
 
         # Update PO RFQ order_deadline and receipt date
         for sup in supplier_reference.values():
+            logger.error("FREPPLE DEBUGGING G: %s %s" % (sup.name, sup.date_planned))
             if sup["min_planned"]:
                 sup["po"].date_planned = sup["min_planned"]
             if sup["min_ordered"]:
                 sup["po"].date_order = sup["min_ordered"]
+            logger.error("FREPPLE DEBUGGING H: %s %s" % (sup.name, sup.date_planned))
 
         # Be polite, and reply to the post
         msg.append("Processed %s uploaded procurement orders" % countproc)
