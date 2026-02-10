@@ -1995,7 +1995,9 @@ class exporter(object):
                 "order_id",
                 "move_ids",
                 "xx_sale_delivery_date",
-                "xx_do_not_deliver_before"
+                "xx_do_not_deliver_before",
+                # E-POWER EXTRA
+                "is_rental",
             ],
         )
 
@@ -2012,6 +2014,9 @@ class exporter(object):
                     "date_order",
                     "picking_policy",
                     "warehouse_id",
+                    # E-POWER EXTRA
+                    "rental_start_date",
+                    "rental_return_date",
                     "xx_requested_delivery_date",
                     "xx_priority",
                     "xx_linked_sale_order_id"
@@ -2144,9 +2149,69 @@ class exporter(object):
                     i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
-            elif state == "sale":
+            elif state == "sale" or i.get("is_rental", False):
                 priority = int(j.get("xx_priority", 10))
-                if i["move_ids"] and any(
+                # E-POWER EXTRA TO DEAL WITH RENTALS
+                if i.get("is_rental", False):
+                    if state != "sale":
+                        # We only consider open rentals, not the history of rental orders
+                        continue
+                    status = "open"
+                    qty = i["product_uom_qty"]
+                    if qty <= 0:
+                        continue
+                    qty = self.convert_qty_uom(
+                        i["product_uom_qty"],
+                        i["product_uom"],
+                        product["template"],
+                    )
+                    # We plan rentals with a maxlateness of 0. If the pickup date isn't feasible we consider
+                    # the sales order lost.
+                    yield (
+                        '<demand name=%s category="rental" maxlateness="P0D" batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                        '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                        "</demand>\n"
+                    ) % (
+                        quoteattr(name),
+                        quoteattr(batch),
+                        qty,
+                        (
+                            self.formatDateTime(j["rental_start_date"])
+                            if j["rental_start_date"]
+                            else due
+                        ),
+                        priority,
+                        qty if j["picking_policy"] == "one" and qty > 0 else 0.0,
+                        status,
+                        quoteattr(product["name"]),
+                        quoteattr(customer),
+                        quoteattr(location),
+                        quoteattr(i["order_id"][1]),
+                        (
+                            "alltogether"
+                            if j["picking_policy"] == "one"
+                            else "independent"
+                        ),
+                    )
+                    if j["rental_return_date"]:
+                        return_date = self.formatDateTime(j["rental_return_date"])
+                        yield (
+                            "</demands><operationplans>\n"
+                            '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">'
+                            "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n"
+                            "</operationplans><demands>\n"
+                        ) % (
+                            quoteattr(f"Rental return {name}"),
+                            "batch=%s " % quoteattr(batch) if batch else "",
+                            return_date,
+                            return_date,
+                            qty,
+                            quoteattr(product["name"]),
+                            quoteattr(location),
+                            quoteattr("Rental return"),
+                        )
+                    continue
+                elif i["move_ids"] and any(
                     [mv_id in stock_moves_dict for mv_id in i["move_ids"]]
                 ):
                     for mv_id in i["move_ids"]:
