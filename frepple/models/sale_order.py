@@ -249,11 +249,9 @@ class SaleOrder(models.Model):
 
                 sale_order.write({"commitment_date": furthest_end_date_utc})
 
-
-            if len(response_json["demands"]) < len(sale_order.order_line.filtered(lambda order_line: order_line.product_id.type == "product")):
+            if not response_json.get("demands"):
                 raise exceptions.UserError(
-                    "Warning: FrePPLe was unable to plan %sthe sales order line%s"
-                    % (("", "") if len(sale_order.order_line) == 1 else ("all ", "s"))
+                    "FrePPLe was unable to plan the sales order line(s)"
                 )
 
 class SaleOrderLine(models.Model):
