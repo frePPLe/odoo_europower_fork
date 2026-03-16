@@ -793,12 +793,16 @@ class importer(object):
 
         # Update PO RFQ order_deadline and receipt date
         for sup in supplier_reference.values():
-            logger.error("FREPPLE DEBUGGING G: %s %s" % (sup.name, sup.date_planned))
+            logger.error(
+                "FREPPLE DEBUGGING G: %s %s" % (sup["po"].name, sup["po"].date_planned)
+            )
             if sup["min_planned"]:
                 sup["po"].date_planned = sup["min_planned"]
             if sup["min_ordered"]:
                 sup["po"].date_order = sup["min_ordered"]
-            logger.error("FREPPLE DEBUGGING H: %s %s" % (sup.name, sup.date_planned))
+            logger.error(
+                "FREPPLE DEBUGGING H: %s %s" % (sup["po"].name, sup["po"].date_planned)
+            )
 
         # Be polite, and reply to the post
         msg.append("Processed %s uploaded procurement orders" % countproc)
