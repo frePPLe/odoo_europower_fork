@@ -2245,16 +2245,16 @@ class exporter(object):
 
                             due = self.formatDateTime(due)
                             yield (
-                                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                                '<demand name=%s category=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
                                 # Disable the next line in frepple < 6.25
                                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-
                                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
                                 '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                                '%s'
+                                "%s"
                                 "</demand>\n"
                             ) % (
                                 quoteattr(sol_name),
+                                quoteattr(state),
                                 quoteattr(batch),
                                 (
                                     qty - reserved_quantity
@@ -2321,16 +2321,16 @@ class exporter(object):
                 continue
 
             yield (
-                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                '<demand name=%s category=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
                 # Enable only in frepple >= 6.25
                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-
                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
                 '<dateproperty name="odoo_delivery_date" value="%s"/>'
                 '%s'
                 "</demand>\n"
             ) % (
                 quoteattr(name),
+                quoteattr(state),
                 quoteattr(batch),
                 qty,
                 due,
