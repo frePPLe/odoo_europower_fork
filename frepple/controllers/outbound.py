@@ -919,6 +919,19 @@ class exporter(object):
             yield "<supplier name=%s/>\n" % quoteattr(i)
         if not first:
             yield "</suppliers>\n"
+        # E-power extra: also define a default holiday calendar for each supplier.
+        first = True
+        for i in set(self.map_suppliers.values()):
+            if first:
+                yield "<!-- Supplier holiday calendars -->\n"
+                yield "<locations>\n"
+                first = False
+            yield '<location name=%s>\n<available name=%s default="1"/>\n</location>\n' % (
+                quoteattr(i),
+                quoteattr(f"Holidays {i}"),
+            )
+        if not first:
+            yield "</locations>\n"
 
     def export_skills(self):
         first = True
