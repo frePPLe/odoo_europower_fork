@@ -921,7 +921,7 @@ class exporter(object):
             yield "</suppliers>\n"
         # E-power extra: also define a default holiday calendar for each supplier.
         first = True
-        for i in set(self.map_suppliers.values()):
+        for i in set(self.map_customers.values()):
             if first:
                 yield "<!-- Supplier holiday calendars -->\n"
                 yield "<locations>\n"
