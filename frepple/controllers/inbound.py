@@ -23,6 +23,7 @@
 #
 
 import odoo
+import json
 import logging
 from xml.etree.cElementTree import iterparse
 from datetime import datetime
@@ -32,11 +33,14 @@ logger = logging.getLogger(__name__)
 
 
 class importer(object):
-    def __init__(self, req, database=None, company=None, mode=1):
+    def __init__(
+        self, req, database=None, company=None, mode=1, disclose_stack_trace=False
+    ):
         self.env = req.env
         self.database = database
         self.company = company
         self.datafile = req.httprequest.files.get("frePPLe plan")
+        self.disclose_stack_trace = disclose_stack_trace
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -136,7 +140,8 @@ class importer(object):
 
         # Parsing the XML data file
         countproc = 0
-        countmfg = 0
+        countmfg_created = 0
+        countmfg_updated = 0
 
         # dictionary that stores as key the supplier id and the associated po id
         # this dict is used to aggregate the exported POs for a same supplier
@@ -280,25 +285,24 @@ class importer(object):
                             continue
 
                         # Create purchase order
+                        remark = elem.get("remark", None)
+                        if remark:
+                            remark = "frePPLe - %s" % remark
+                        else:
+                            remark = "frePPLe"
                         if supplier_id not in supplier_reference:
-                            po = proc_order.create(
-                                {
-                                    "company_id": self.company.id,
-                                    "partner_id": supplier_id,
-                                    # TODO Odoo has no place to store the location and criticality
-                                    # int(elem.get('location_id')),
-                                    # elem.get('criticality'),
-                                    "origin": "frePPLe",
-                                }
-                            )
-                            logger.error(
-                                "FREPPLE DEBUGGING A: %s %s"
-                                % (po.name, po.date_planned)
-                            )
+                            po_args = {
+                                "company_id": self.company.id,
+                                "partner_id": supplier_id,
+                                "origin": remark,
+                            }
+                            po = proc_order.create(po_args)
                             po.payment_term_id = (
                                 po.partner_id.property_supplier_payment_term_id.id
                             )
                             if po.partner_id.property_purchase_currency_id:
+                                # The logic here is specific to e-power.
+                                # The standard connector sets the po currency with a slightly different logic.
                                 po.currency_id = (
                                     po.partner_id.property_purchase_currency_id
                                 )
@@ -307,8 +311,12 @@ class importer(object):
                                 "min_planned": date_planned,
                                 "min_ordered": date_ordered,
                                 "po": po,
+                                "frepple_references": [elem.get("id")],
                             }
                         else:
+                            supplier_reference[supplier_id][
+                                "frepple_references"
+                            ].append(elem.get("id"))
                             if (
                                 date_planned
                                 < supplier_reference[supplier_id]["min_planned"]
@@ -338,7 +346,7 @@ class importer(object):
                                     # E - POWER CUSTOMIZATION
                                     # Make sure we only select supplier info that is not expired.
                                     ("date_end", ">=", datetime.now()),
-                                    ("date_start", "<=", datetime.now())
+                                    ("date_start", "<=", datetime.now()),
                                 ],
                                 limit=1,
                                 order="min_qty desc",
@@ -354,10 +362,6 @@ class importer(object):
                                 }
                             )
                             po = po_line.order_id
-                            logger.error(
-                                "FREPPLE DEBUGGING B: %s %s"
-                                % (po.name, po.date_planned)
-                            )
                             # Then let odoo computes all the fields (taxes, name, description...)
 
                             d = po_line._prepare_purchase_order_line(
@@ -368,21 +372,9 @@ class importer(object):
                                 supplier,
                                 po,
                             )
-                            logger.error(
-                                "FREPPLE DEBUGGING C: %s %s"
-                                % (po.name, po.date_planned)
-                            )
                             d["date_planned"] = date_planned
-                            logger.error(
-                                "FREPPLE DEBUGGING D: %s %s"
-                                % (po.name, po.date_planned)
-                            )
                             # Finally update the PO line
                             po_line.write(d)
-                            logger.error(
-                                "FREPPLE DEBUGGING E: %s %s"
-                                % (po.name, po.date_planned)
-                            )
 
                             # Aggregation of quantities under the same PO line
                             # only happens in incremental export
@@ -395,10 +387,6 @@ class importer(object):
                                 date_planned,
                             )
                             po_line.product_qty = po_line.product_qty + float(quantity)
-                            logger.error(
-                                "FREPPLE DEBUGGING F: %s %s"
-                                % (po_line.order_id.name, po_line.order_id.date_planned)
-                            )
                         countproc += 1
                     elif ordertype == "DO":
                         if not hasattr(self, "do_index"):
@@ -478,6 +466,11 @@ class importer(object):
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
                         if not self.stock_picking_dict.get((origin, destination)):
+                            remark = elem.get("remark", None)
+                            if remark:
+                                remark = "frePPLe - %s" % remark
+                            else:
+                                remark = "frePPLe"
                             self.stock_picking_dict[(origin, destination)] = (
                                 stck_picking.create(
                                     {
@@ -486,7 +479,7 @@ class importer(object):
                                         "location_id": location_id["id"],
                                         "location_dest_id": location_dest_id["id"],
                                         "move_type": "direct",
-                                        "origin": "frePPLe",
+                                        "origin": remark,
                                     }
                                 )
                             )
@@ -605,19 +598,40 @@ class importer(object):
                             ],
                             limit=1,
                         )
-                        bom_id = self.env['mrp.bom'].browse(int(elem.get("operation").rsplit(" ", 1)[1]))
+                        bom_id = self.env["mrp.bom"].browse(
+                            int(elem.get("operation").rsplit(" ", 1)[1])
+                        )
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
                         # Also do not create secondary work center records
                         context.update(
                             {
-                                "default_picking_type_id": bom_id.picking_type_id.id or picking.id,
+                                "default_picking_type_id": bom_id.picking_type_id.id
+                                or picking.id,
                                 "ignore_secondary_workcenters": True,
                             }
                         )
                         if (elem.get("status") or "proposed") == "proposed":
                             # MO creation
+                            remark = elem.get("remark", None)
+                            if remark:
+                                remark = "frePPLe - %s" % remark
+                            else:
+                                remark = "frePPLe"
+                            bom_id = int(elem.get("operation").rsplit(" ", 1)[1])
+                            try:
+                                bom = bom_type.search(
+                                    [
+                                        ("id", "=", bom_id),
+                                    ],
+                                    limit=1,
+                                )
+                                if not bom or bom.type == "phantom":
+                                    # Avoid creating MO on a) non-existing BOMs and b) phantom/kit BOMs
+                                    continue
+                            except Exception:
+                                pass
                             mo = mfg_order.with_context(context).create(
                                 {
                                     "product_qty": elem.get("quantity"),
@@ -626,24 +640,22 @@ class importer(object):
                                     "product_id": int(item_id),
                                     "company_id": self.company.id,
                                     "product_uom_id": int(uom_id),
-                                    "picking_type_id": bom_id.picking_type_id.id or picking.id,
-                                    "bom_id": int(
-                                        elem.get("operation").rsplit(" ", 1)[1]
-                                    ),
+                                    "picking_type_id": bom_id.picking_type_id.id
+                                    or picking.id,
+                                    "bom_id": bom_id,
                                     "qty_producing": 0.00,
                                     # TODO no place to store the criticality
                                     # elem.get('criticality'),
-                                    "origin": "frePPLe",
+                                    "origin": remark,
                                 }
                             )
+                            countmfg_created += 1
                             # Remember odoo name for the MO reference passed by frepple.
                             # This mapping is later used when importing WO.
                             mo_references[elem.get("reference")] = mo
                             mo._create_update_move_finished()
                             mo._compute_workorder_ids()
                             # mo.action_confirm()  # confirm MO
-                            # mo._plan_workorders() # plan MO
-                            # mo.action_assign() # reserve material
                             create = True
                         else:
                             # MO update
@@ -654,8 +666,14 @@ class importer(object):
                                 )
                             except Exception:
                                 continue
+                            countmfg_updated += 1
                             if mo:
                                 new_qty = float(elem.get("quantity"))
+                                remark = elem.get("remark", None)
+                                if remark:
+                                    remark = "frePPLe - %s" % remark
+                                else:
+                                    remark = "frePPLe"
                                 if mo.product_qty != new_qty:
                                     cpq = change_product_qty.create(
                                         {
@@ -664,13 +682,17 @@ class importer(object):
                                         }
                                     )
                                     cpq.change_prod_qty()
-                                mo.write(
-                                    {
-                                        "date_start": elem.get("start"),
-                                        "date_finished": elem.get("end"),
-                                        "origin": "frePPLe",
-                                    }
-                                )
+                                arg_dict = {
+                                    "date_start": elem.get("start"),
+                                    "date_finished": elem.get("end"),
+                                    "origin": remark,
+                                }
+                                # Odoo doesn't allow updating the start date of the MO if one WO is in progress
+                                if any(
+                                    wo.state == "progress" for wo in mo.workorder_ids
+                                ):
+                                    arg_dict.pop("date_start")
+                                mo.write(arg_dict)
                                 mo_references[elem.get("reference")] = mo
 
                         # Process the workorder information we received
@@ -683,7 +705,14 @@ class importer(object):
                                         # By default odoo populates the scheduled start date field only when you confirm and plan
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
-                                        if "start" in rec:
+                                        # We need to update the end date first
+                                        # if the new start date is after the current end date
+                                        startUpdated = False
+                                        if "start" in rec and (
+                                            not wo.date_finished
+                                            or rec["start"] <= wo.date_finished
+                                        ):
+                                            startUpdated = True
                                             wo.date_start = rec["start"]
                                             if not create:
                                                 wo.write({"date_start": wo.date_start})
@@ -693,7 +722,10 @@ class importer(object):
                                                 wo.write(
                                                     {"date_finished": wo.date_finished}
                                                 )
-
+                                        if not startUpdated and "start" in rec:
+                                            wo.date_start = rec["start"]
+                                            if not create:
+                                                wo.write({"date_start": wo.date_start})
                                         for res in rec["workcenters"]:
                                             wc = mfg_workcenter.browse(res["id"])
                                             if not wc:
@@ -749,7 +781,6 @@ class importer(object):
                                                             )
                                                             break
 
-                        countmfg += 1
                 except Exception as e:
                     import traceback
 
@@ -786,25 +817,48 @@ class importer(object):
                     msg.append(str(e))
                 # Remove the element now to keep the DOM tree small
                 root.clear()
-
             elif event == "start" and elem.tag in ["operationplans", "demands"]:
                 # Remember the root element
                 root = elem
 
         # Update PO RFQ order_deadline and receipt date
         for sup in supplier_reference.values():
-            logger.error(
-                "FREPPLE DEBUGGING G: %s %s" % (sup["po"].name, sup["po"].date_planned)
-            )
             if sup["min_planned"]:
                 sup["po"].date_planned = sup["min_planned"]
             if sup["min_ordered"]:
                 sup["po"].date_order = sup["min_ordered"]
-            logger.error(
-                "FREPPLE DEBUGGING H: %s %s" % (sup["po"].name, sup["po"].date_planned)
-            )
+
+        # Collect created PO/MO references
+        created_pos = [
+            {
+                "reference": sup["po"].name,
+                "id": sup["id"],
+                "frepple_references": sup["frepple_references"],
+            }
+            for sup in supplier_reference.values()
+        ]
+        created_mos = [
+            {"reference": mo.name, "id": mo.id, "frepple_reference": frepple_ref}
+            for frepple_ref, mo in mo_references.items()
+        ]
 
         # Be polite, and reply to the post
-        msg.append("Processed %s uploaded procurement orders" % countproc)
-        msg.append("Processed %s uploaded manufacturing orders" % countmfg)
-        return "\n".join(msg)
+        if countmfg_created:
+            msg.append(
+                "Created %d manufacturing orders%s"
+                % (countmfg_created, "\n" if countmfg_updated or created_pos else "")
+            )
+        if countmfg_updated:
+            msg.append(
+                "Updated %d manufacturing orders%s"
+                % (countmfg_updated, "\n" if created_pos else "")
+            )
+        if created_pos:
+            msg.append("Created %d purchase orders" % (len(created_pos),))
+        return json.dumps(
+            {
+                "messages": msg,
+                "created_purchase_orders": created_pos,
+                "created_manufacturing_orders": created_mos,
+            }
+        )

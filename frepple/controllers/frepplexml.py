@@ -25,6 +25,7 @@
 import base64
 import hashlib
 import hmac
+
 import json
 import logging
 import odoo
@@ -38,8 +39,6 @@ from werkzeug.wrappers import Response
 
 
 from odoo import http
-from odoo.addons.frepple.controllers.outbound import exporter, Odoo_generator
-from odoo.addons.frepple.controllers.inbound import importer
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,19 @@ class XMLController(odoo.http.Controller):
             self.user, password = auth.split(":", 1)
             if not database or not self.user or not password:
                 raise Exception("Missing user, password or database")
-            uid = req.session.authenticate(database, self.user, password)
+            # Authenticate with an API key
+            uid = req.env["res.users.apikeys"]._check_credentials(
+                scope="rpc", key=password
+            )
+            if uid:
+                req.update_env(user=uid)
+            else:
+                # Authenticate with a password
+                uid = req.session.authenticate(
+                    database,
+                    self.user,
+                    password,
+                )
             if not uid:
                 raise Exception("Odoo basic authentication failed")
         elif authmeth.lower() == "bearer" and version and version[0] >= 7:
@@ -128,9 +139,17 @@ class XMLController(odoo.http.Controller):
                     raise Exception(
                         "Missing user, password, company or database in token"
                     )
-                uid = req.session.authenticate(
-                    database, decoded["user"], decoded["password"]
+                # Authenticate with an API key
+                uid = req.env["res.users.apikeys"]._check_credentials(
+                    scope="rpc", key=decoded["password"]
                 )
+                if uid:
+                    req.update_env(user=uid)
+                else:
+                    # Authenticate with a password
+                    uid = req.session.authenticate(
+                        database, decoded["user"], decoded["password"]
+                    )
                 if not uid:
                     raise Exception("Odoo token authentication failed")
             except Exception:
@@ -203,6 +222,11 @@ class XMLController(odoo.http.Controller):
         if req.httprequest.method == "GET":
             # Generate data
             try:
+                from odoo.addons.frepple.controllers.outbound import (
+                    exporter,
+                    Odoo_generator,
+                )
+
                 xp = exporter(
                     Odoo_generator(req.env),
                     req,
@@ -218,15 +242,20 @@ class XMLController(odoo.http.Controller):
                     language=language,
                     apps=apps,
                 )
+
                 # last empty double quote is to let python understand frepple is a folder.
                 xml_folder = os.path.join(str(Path.home()), "logs", "frepple", "")
                 os.makedirs(os.path.dirname(xml_folder), exist_ok=True)
 
-                # delete any old xml file in that folder
+                # delete any old file in that folder
+                current_time = time.time()
                 for file_name in os.listdir(xml_folder):
                     # construct full file path
                     file = xml_folder + file_name
-                    if os.path.isfile(file):
+                    if (
+                        os.path.isfile(file)
+                        and current_time - os.path.getmtime(file) > 24 * 3600
+                    ):
                         os.remove(file)
 
                 with NamedTemporaryFile(
@@ -261,16 +290,20 @@ class XMLController(odoo.http.Controller):
         elif req.httprequest.method == "POST":
             # Import the data
             try:
+                from odoo.addons.frepple.controllers.inbound import importer
+
                 ip = importer(
                     req,
                     database=database,
                     company=company,
                     mode=req.httprequest.form.get("mode", 1),
+                    disclose_stack_trace=company and company.disclose_stack_trace,
                 )
+
                 return req.make_response(
                     ip.run(),
                     [
-                        ("Content-Type", "text/plain"),
+                        ("Content-Type", "application/json"),
                         ("Cache-Control", "no-cache, no-store, must-revalidate"),
                         ("Pragma", "no-cache"),
                         ("Expires", "0"),
