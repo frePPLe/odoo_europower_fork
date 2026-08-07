@@ -1349,7 +1349,8 @@ class exporter(object):
                                     ),
                                     1,
                                 )
-                            ) < r["price"]
+                            )
+                            < r["price"]
                         ):
                             r["price"] = sup["price"] / self.currency.get(
                                 (
@@ -1440,7 +1441,7 @@ class exporter(object):
                 "workcenter_id",
                 "sequence",
                 # E-POWER CUSTOMIZATION
-                "xx_total_time_cycle", # Custom epower field
+                "xx_total_time_cycle",  # Custom epower field
                 "xx_operation_type_id",  # Custom epower field
                 "skill",
                 "search_mode",
@@ -1715,10 +1716,10 @@ class exporter(object):
                                         (
                                             1
                                             if not secondary_workcenter["duration"]
-                                               # E-POWER CUSTOMIZATION
+                                            # E-POWER CUSTOMIZATION
                                             or j["xx_total_time_cycle"] == 0
                                             else secondary_workcenter["duration"]
-                                                 # E-POWER CUSTOMIZATION
+                                            # E-POWER CUSTOMIZATION
                                             / j["xx_total_time_cycle"]
                                         ),
                                         quoteattr(secondary_workcenter["search_mode"]),
@@ -1873,10 +1874,10 @@ class exporter(object):
                                         (
                                             1
                                             if not secondary_workcenter["duration"]
-                                               # E-POWER CUSTOMIZATION
+                                            # E-POWER CUSTOMIZATION
                                             or step["xx_total_time_cycle"] == 0
                                             else secondary_workcenter["duration"]
-                                                 # E-POWER CUSTOMIZATION
+                                            # E-POWER CUSTOMIZATION
                                             / step["xx_total_time_cycle"]
                                         ),
                                         quoteattr(secondary_workcenter["search_mode"]),
@@ -1908,12 +1909,14 @@ class exporter(object):
                                     if i["code"]
                                     else ""
                                 ),
-
                                 counter * 10,
                                 (
                                     # E-POWER CUSTOMIZATION
-                                    self.convert_float_time(step["xx_total_time_cycle"] / 1440.0)
-                                    if step["xx_total_time_cycle"] and step["xx_total_time_cycle"] > 0
+                                    self.convert_float_time(
+                                        step["xx_total_time_cycle"] / 1440.0
+                                    )
+                                    if step["xx_total_time_cycle"]
+                                    and step["xx_total_time_cycle"] > 0
                                     else "P0D"
                                 ),
                                 quoteattr(location),
@@ -2032,7 +2035,7 @@ class exporter(object):
                     "rental_return_date",
                     "xx_requested_delivery_date",
                     "xx_priority",
-                    "xx_linked_sale_order_id"
+                    "xx_linked_sale_order_id",
                 ],
             )
         }
@@ -2108,7 +2111,11 @@ class exporter(object):
             # due = self.formatDateTime(
             #     j.get("commitment_date", False) or j["date_order"]
             # )
-            due = j.get("xx_requested_delivery_date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
+            due = (
+                j.get("xx_requested_delivery_date", False)
+                or j.get("date_order", False)
+                or "2020-01-01T00:00:00"
+            )
             if isinstance(due, date):
                 due = datetime.combine(due, datetime.min.time())
 
@@ -2125,7 +2132,9 @@ class exporter(object):
                 or j["date_order"]
             )
             if isinstance(xx_sale_delivery_date, date):
-                xx_sale_delivery_date = datetime.combine(xx_sale_delivery_date, datetime.min.time())
+                xx_sale_delivery_date = datetime.combine(
+                    xx_sale_delivery_date, datetime.min.time()
+                )
 
             if not isinstance(xx_sale_delivery_date, datetime):
                 xx_sale_delivery_date = datetime.fromisoformat(xx_sale_delivery_date)
@@ -2163,7 +2172,9 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale" or i.get("is_rental", False):
-                priority = int(j.get("xx_priority", 10))
+                priority = 10
+                # Old Epower customization to read the custom field xx_priority from the sale order.
+                # priority = int(j.get("xx_priority", 10))
                 # E-POWER EXTRA TO DEAL WITH RENTALS
                 if i.get("is_rental", False):
                     if state != "sale":
@@ -2250,7 +2261,11 @@ class exporter(object):
                                 if self.respect_reservations
                                 else 0
                             )
-                            due = sm.get("date", False) or j.get("date_order", False) or "2020-01-01T00:00:00"
+                            due = (
+                                sm.get("date", False)
+                                or j.get("date_order", False)
+                                or "2020-01-01T00:00:00"
+                            )
 
                             if not isinstance(due, datetime):
                                 print(due)
@@ -2288,12 +2303,18 @@ class exporter(object):
                                     if j["picking_policy"] == "one"
                                     else "independent"
                                 ),
-                                "true" if i.get("xx_sale_delivery_date", False) else "false",
+                                (
+                                    "true"
+                                    if i.get("xx_sale_delivery_date", False)
+                                    else "false"
+                                ),
                                 xx_sale_delivery_date,
-                                '<dateproperty name="dont_deliver_before" value="%s"/>'
-                                % dont_deliver_before
-                                if dont_deliver_before
-                                else "",
+                                (
+                                    '<dateproperty name="dont_deliver_before" value="%s"/>'
+                                    % dont_deliver_before
+                                    if dont_deliver_before
+                                    else ""
+                                ),
                             )
                     # We are done with this line, move to the next one
                     continue
@@ -2339,7 +2360,7 @@ class exporter(object):
                 '<owner name=%s policy="%s" xsi:type="demand_group"/>'
                 '<booleanproperty name="exported_to_odoo" value="%s"/>'
                 '<dateproperty name="odoo_delivery_date" value="%s"/>'
-                '%s'
+                "%s"
                 "</demand>\n"
             ) % (
                 quoteattr(name),
@@ -2358,10 +2379,12 @@ class exporter(object):
                 "alltogether" if j["picking_policy"] == "one" else "independent",
                 "true" if i.get("xx_sale_delivery_date", False) else "false",
                 xx_sale_delivery_date,
-                '<dateproperty name="dont_deliver_before" value="%s"/>'
-                % dont_deliver_before
-                if dont_deliver_before
-                else "",
+                (
+                    '<dateproperty name="dont_deliver_before" value="%s"/>'
+                    % dont_deliver_before
+                    if dont_deliver_before
+                    else ""
+                ),
             )
         yield "</demands>\n"
 
@@ -2542,7 +2565,7 @@ class exporter(object):
             #                 quoteattr(supplier),
             #             )
             # else:
-                # METHOD 2: Create purchasing operations from purchase order lines
+            # METHOD 2: Create purchasing operations from purchase order lines
             if line_is_subcontracting:
                 continue
 
@@ -3178,8 +3201,7 @@ class exporter(object):
         yield "<operationplans>\n"
         if isinstance(self.generator, Odoo_generator):
             # SQL query gives much better performance
-            self.generator.env.cr.execute(
-                """
+            self.generator.env.cr.execute("""
                 SELECT stock_quant.product_id,
                 stock_quant.location_id,
                 sum(stock_quant.quantity) as quantity,
@@ -3195,8 +3217,7 @@ class exporter(object):
                 stock_lot.name,
                 stock_lot.expiration_date
                 ORDER BY location_id ASC
-                """
-            )
+                """)
             data = self.generator.env.cr.fetchall()
         else:
             data = [
@@ -3351,9 +3372,11 @@ class exporter(object):
             )
 
         for page in range(math.ceil(len(op_eff) / 10)):
-            yield '<stringproperty name="operation_efficiencies_%s" value=%s/>\n' % (page + 1, quoteattr(
-                json.dumps(op_eff[page * 10:page * 10 + 10])
-            ))
+            yield '<stringproperty name="operation_efficiencies_%s" value=%s/>\n' % (
+                page + 1,
+                quoteattr(json.dumps(op_eff[page * 10 : page * 10 + 10])),
+            )
+
 
 if __name__ == "__main__":
     #
