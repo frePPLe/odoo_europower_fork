@@ -49,6 +49,7 @@ class ResCompany(models.Model):
         default=True,
         help="When checked frepple respects the reservations. When unchecked frepple can reallocate material.",
     )
+    confirmation_fence = fields.Integer("Confirmation fence", default=21)
 
     @api.model
     def getFreppleURL(self, navbar=True, _url="/"):

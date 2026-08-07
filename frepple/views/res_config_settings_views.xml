@@ -72,6 +72,20 @@
                            <field name="disclose_stack_trace"/>
                         </div>
                      </div>
+                     <div class="col-12 col-lg-6 o_setting_box" id="frepple_confirmation_fence">
+                        <div
+                           class="o_setting_left_pane" />
+                        <div class="o_setting_right_pane">
+                           <label
+                              for="confirmation_fence" />
+                           <div class="text-muted"> 
+                              Manufacturing orders within this fence are sent
+                              to frepple as "confirmed".<br/>
+                              Beyond this fence they are sent to frepple as "approved". </div>
+                           <field
+                              name="confirmation_fence" />
+                        </div>
+                     </div>
                   </div>
                </app>
             </xpath>

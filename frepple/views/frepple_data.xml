@@ -18,6 +18,7 @@
               <field name="frepple_server"/>
               <field name="respect_reservations"/>
               <field name="disclose_stack_trace"/>
+              <field name="confirmation_fence" />
             </group>
           </page>
         </xpath>

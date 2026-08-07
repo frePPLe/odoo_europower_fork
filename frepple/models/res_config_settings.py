@@ -53,3 +53,8 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.disclose_stack_trace",
         readonly=False,
     )
+    confirmation_fence = fields.Integer(
+        "Confirmation fence",
+        related="company_id.confirmation_fence",
+        readonly=False,
+    )
