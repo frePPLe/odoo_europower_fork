@@ -2108,11 +2108,20 @@ class exporter(object):
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
+            # Standard connector
             # due = self.formatDateTime(
             #     j.get("commitment_date", False) or j["date_order"]
             # )
+            # Old Epower customization
+            # due = (
+            #     j.get("xx_requested_delivery_date", False)
+            #     or j.get("date_order", False)
+            #     or "2020-01-01T00:00:00"
+            # )
+            # Latest epower customization
             due = (
-                j.get("xx_requested_delivery_date", False)
+                i.get("xx_sale_delivery_date", False)
+                or j.get("xx_requested_delivery_date", False)
                 or j.get("date_order", False)
                 or "2020-01-01T00:00:00"
             )
@@ -2120,7 +2129,6 @@ class exporter(object):
                 due = datetime.combine(due, datetime.min.time())
 
             if not isinstance(due, datetime):
-                print(due)
                 due = datetime.fromisoformat(due)
 
             due = self.formatDateTime(due)
@@ -2172,7 +2180,7 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale" or i.get("is_rental", False):
-                priority = 10
+                priority = 10 if i.get("xx_sale_delivery_date", False) else 999
                 # Old Epower customization to read the custom field xx_priority from the sale order.
                 # priority = int(j.get("xx_priority", 10))
                 # E-POWER EXTRA TO DEAL WITH RENTALS
