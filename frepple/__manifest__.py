@@ -21,6 +21,7 @@
         "views/mrp_routing_workcenter_inherit.xml",
         "views/mrp_workorder_inherit.xml",
         "views/mrp_workorder_secondary_workcenter.xml",
+        "views/mrp_production_inherit.xml",
         "views/product_supplierinfo_inherit.xml",
         "views/sale_views.xml",
         "views/quote_views.xml",

@@ -23,13 +23,19 @@
 #
 
 import logging
-from odoo import models
+from odoo import models, fields
 
 _logger = logging.getLogger(__name__)
 
 
 class MrpProductionInherit(models.Model):
     _inherit = "mrp.production"
+
+    xx_keep_confirmed = fields.Boolean(
+        "Confirmed in frepple",
+        default=False,
+        help="Frepple: Keep confirmed and disable rescheduling.",
+    )
 
     def _create_workorder(self):
         super(MrpProductionInherit, self)._create_workorder()
