@@ -2782,7 +2782,7 @@ class exporter(object):
                 if (
                     (self.manage_work_orders or i.state in ("confirmed", "draft"))
                     and not i.xx_keep_confirmed
-                    and i.startdate > self.confirmation_fence
+                    and (i.date_start if i.date_start else i.date_planned_start) > self.confirmation_fence
                 )
                 else "confirmed"
             )
